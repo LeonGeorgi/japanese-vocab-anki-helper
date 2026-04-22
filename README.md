@@ -57,9 +57,15 @@ npm run preview:host
 
 ## Deployment
 
-Upload the contents of `dist/` to any static web host.
+Upload the contents of `dist/` to a static web host configured for single-page app fallback.
 
-The Vite build uses relative asset paths, so the app can be hosted at a domain root or under a subpath.
+The app uses browser-history routes:
+
+- `/`
+- `/manual-vocab`
+- `/anki-backfill`
+
+The host must serve `index.html` for those routes. The build includes a Netlify-style `_redirects` file for hosts that support it. The Vite build is configured for hosting at a domain root.
 
 ## Runtime Notes
 

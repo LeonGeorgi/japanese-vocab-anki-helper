@@ -54,7 +54,6 @@ export function Header({
               value={draft}
               onChange={e => setDraft(e.target.value)}
               onBlur={e => commit(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && commit(draft)}
             />
           </div>
         </div>

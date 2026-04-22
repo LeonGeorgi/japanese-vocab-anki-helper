@@ -18,3 +18,12 @@ export interface GenerateOptions {
   simplify?: boolean
   feedback?: string
 }
+
+export interface ManualVocabOption {
+  word: string
+  meaning: string
+}
+
+export type ManualVocabResolution =
+  | { status: 'clear'; option: ManualVocabOption }
+  | { status: 'ambiguous'; options: ManualVocabOption[] }

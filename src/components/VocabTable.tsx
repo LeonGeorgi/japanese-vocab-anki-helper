@@ -8,6 +8,7 @@ import { VocabRow } from './VocabRow'
 type Notification = { type: 'success' | 'error'; message: string }
 
 interface Props {
+  title?: string
   words: Word[]
   examples: Record<string, Example>
   apiKey: string
@@ -22,7 +23,7 @@ interface Props {
   onNotify: (notification: Notification) => void
 }
 
-export function VocabTable({ words, examples, apiKey, jlptLevel, filterEasy, nativeLanguage, onFilterChange, onGenerate, onTranslate, onSplit, onConvertToKanji, onNotify }: Props) {
+export function VocabTable({ title = '3 — Vocabulary', words, examples, apiKey, jlptLevel, filterEasy, nativeLanguage, onFilterChange, onGenerate, onTranslate, onSplit, onConvertToKanji, onNotify }: Props) {
   const easyLevels = EASY_LEVELS[jlptLevel]
   const [lookupDeck, setLookupDeck] = useLocalStorage(KEY_ANKI_LOOKUP_DECK, 'Japanese')
   const { inAnki, refresh } = useAnkiStatus(words)
@@ -40,7 +41,7 @@ export function VocabTable({ words, examples, apiKey, jlptLevel, filterEasy, nat
 
   return (
     <div className="step">
-      <div className="step-label">3 — Vocabulary</div>
+      <div className="step-label">{title}</div>
       <div className="words-section">
         <div className="words-header">
           <div className="words-header-left">

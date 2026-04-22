@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { parseWordLines, stripWrappingJapaneseQuotes } from '../src/api/claudeParsers'
+import { parseManualVocabResolution, parseWordLines, stripWrappingJapaneseQuotes } from '../src/api/claudeParsers'
 
 test('stripWrappingJapaneseQuotes removes only balanced outer Japanese quotes across split parts', () => {
   expect(
@@ -29,4 +29,30 @@ test('parseWordLines trims words, drops duplicates, and normalizes unknown level
       { word: '醸造', level: 'N1' },
       { word: 'hello', level: null },
     ])
+})
+
+test('parseManualVocabResolution parses clear and ambiguous JSON responses', () => {
+  expect(
+    parseManualVocabResolution('{"status":"clear","word":"橋","meaning":"bridge"}', 'はし'),
+  ).toEqual({
+    status: 'clear',
+    option: { word: '橋', meaning: 'bridge' },
+  })
+
+  expect(
+    parseManualVocabResolution('```json\n{"status":"ambiguous","options":[{"word":"橋","meaning":"bridge"},{"word":"箸","meaning":"chopsticks"}]}\n```', 'はし'),
+  ).toEqual({
+    status: 'ambiguous',
+    options: [
+      { word: '橋', meaning: 'bridge' },
+      { word: '箸', meaning: 'chopsticks' },
+    ],
+  })
+})
+
+test('parseManualVocabResolution falls back to a clear result when JSON is invalid', () => {
+  expect(parseManualVocabResolution('not json', 'はし')).toEqual({
+    status: 'clear',
+    option: { word: 'はし', meaning: '' },
+  })
 })

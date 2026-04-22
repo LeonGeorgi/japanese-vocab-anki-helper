@@ -1,4 +1,4 @@
-import type { GenerateOptions, JlptLevel, Word } from '../types'
+import type { GenerateOptions, JlptLevel, ManualVocabResolution, Word } from '../types'
 import {
   OCR_SYSTEM_PROMPT,
   OCR_USER_PROMPT,
@@ -8,10 +8,12 @@ import {
   extractWordsPrompt,
   furiganaPrompt,
   generateExamplePrompt,
+  generateManualExamplePrompt,
+  resolveManualVocabPrompt,
   splitWordPrompt,
   translateSentencePrompt,
 } from './claudePrompts'
-import { parseWordLines, stripWrappingJapaneseQuotes } from './claudeParsers'
+import { parseManualVocabResolution, parseWordLines, stripWrappingJapaneseQuotes } from './claudeParsers'
 
 const CLAUDE_API = 'https://api.anthropic.com/v1/messages'
 
@@ -202,6 +204,34 @@ export function generateExample(
   return callHaiku(
     apiKey,
     generateExamplePrompt(transcription, word, jlptLevel, previousSentence, simplify, feedback),
+    256,
+    1024,
+  )
+}
+
+export async function resolveManualVocab(
+  apiKey: string,
+  word: string,
+  targetLanguage: string,
+  context?: string,
+): Promise<ManualVocabResolution> {
+  const cleanWord = word.trim()
+  const lang = targetLanguage || 'English'
+  const raw = await callHaiku(apiKey, resolveManualVocabPrompt(cleanWord, lang, context), 512)
+  return parseManualVocabResolution(raw, cleanWord)
+}
+
+export function generateManualExample(
+  apiKey: string,
+  word: string,
+  jlptLevel: JlptLevel,
+  options: GenerateOptions = {},
+  meaning?: string,
+  context?: string,
+): Promise<string> {
+  return callHaiku(
+    apiKey,
+    generateManualExamplePrompt(word, jlptLevel, options, meaning, context),
     256,
     1024,
   )

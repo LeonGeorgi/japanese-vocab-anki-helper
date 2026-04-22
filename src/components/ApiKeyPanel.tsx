@@ -26,19 +26,24 @@ export function ApiKeyPanel({ apiKey, onSave }: Props) {
         </span>
       </button>
       {open && (
-        <div className="api-key-form">
+        <form
+          className="api-key-form"
+          onSubmit={e => {
+            e.preventDefault()
+            save()
+          }}
+        >
           <input
             type="password"
             placeholder="sk-ant-..."
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && save()}
             autoFocus
           />
-          <button className="btn btn-primary" onClick={save} disabled={!input}>
+          <button className="btn btn-primary" type="submit" disabled={!input}>
             Save
           </button>
-        </div>
+        </form>
       )}
     </div>
   )

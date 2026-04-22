@@ -1,4 +1,4 @@
-import type { JlptLevel, Word } from '../types'
+import type { JlptLevel, ManualVocabOption, ManualVocabResolution, Word } from '../types'
 import { JLPT_LEVELS } from '../constants'
 
 export function stripWrappingJapaneseQuotes(parts: [string, string, string]): [string, string, string] {
@@ -26,4 +26,48 @@ export function parseWordLines(text: string): Word[] {
       word,
       level: JLPT_LEVELS.includes(level as JlptLevel) ? level as JlptLevel : null,
     }))
+}
+
+function extractJsonObject(text: string) {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]
+  const candidate = fenced ?? text
+  const start = candidate.indexOf('{')
+  const end = candidate.lastIndexOf('}')
+  return start >= 0 && end > start ? candidate.slice(start, end + 1) : candidate
+}
+
+function isOption(value: unknown): value is ManualVocabOption {
+  if (!value || typeof value !== 'object') return false
+  const option = value as Partial<ManualVocabOption>
+  return typeof option.word === 'string'
+    && option.word.trim().length > 0
+    && typeof option.meaning === 'string'
+    && option.meaning.trim().length > 0
+}
+
+export function parseManualVocabResolution(text: string, fallbackWord: string): ManualVocabResolution {
+  try {
+    const parsed = JSON.parse(extractJsonObject(text)) as unknown
+    if (!parsed || typeof parsed !== 'object') throw new Error('Invalid resolution')
+    const data = parsed as { status?: unknown; word?: unknown; meaning?: unknown; options?: unknown }
+
+    if (data.status === 'ambiguous' && Array.isArray(data.options)) {
+      const options = data.options.filter(isOption).map(option => ({
+        word: option.word.trim(),
+        meaning: option.meaning.trim(),
+      }))
+      if (options.length > 0) return { status: 'ambiguous', options }
+    }
+
+    if (data.status === 'clear' && typeof data.word === 'string' && typeof data.meaning === 'string') {
+      return {
+        status: 'clear',
+        option: { word: data.word.trim() || fallbackWord, meaning: data.meaning.trim() },
+      }
+    }
+  } catch {
+    // Fall through to a conservative clear result.
+  }
+
+  return { status: 'clear', option: { word: fallbackWord, meaning: '' } }
 }

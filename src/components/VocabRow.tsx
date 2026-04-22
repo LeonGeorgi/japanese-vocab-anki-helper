@@ -154,7 +154,13 @@ export function VocabRow({ word, example, apiKey, nativeLanguage, inAnki, onGene
                   </button>
                 </div>
                 {feedbackOpen && (
-                  <div className="feedback-row">
+                  <form
+                    className="feedback-row"
+                    onSubmit={e => {
+                      e.preventDefault()
+                      submitFeedback()
+                    }}
+                  >
                     <input
                       ref={inputRef}
                       className="feedback-input"
@@ -162,18 +168,17 @@ export function VocabRow({ word, example, apiKey, nativeLanguage, inAnki, onGene
                       value={feedbackText}
                       onChange={e => setFeedbackText(e.target.value)}
                       onKeyDown={e => {
-                        if (e.key === 'Enter') submitFeedback()
                         if (e.key === 'Escape') setFeedbackOpen(false)
                       }}
                     />
                     <button
                       className="btn-regenerate"
-                      onClick={submitFeedback}
+                      type="submit"
                       disabled={!feedbackText.trim()}
                     >
                       →
                     </button>
-                  </div>
+                  </form>
                 )}
                 {example.translation && (
                   <div className="example-translation">{example.translation}</div>

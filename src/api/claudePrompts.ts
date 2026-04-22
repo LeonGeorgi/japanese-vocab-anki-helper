@@ -1,4 +1,5 @@
 import type { JlptLevel } from '../types'
+import type { GenerateOptions } from '../types'
 import { VOCAB_CEILING } from '../constants'
 
 export const OCR_SYSTEM_PROMPT = 'You are a highly precise Japanese OCR data extraction tool. Your ONLY task is to extract exact Japanese characters from images. You output strictly the raw, original text. You never translate, never summarize, and never include conversational filler.'
@@ -144,6 +145,72 @@ ${previousBlock}${revisionInstruction}
 
 The sentence must:
 - Be about a different topic (not related to the source text above).
+- Use ${vocabConstraint} for every word except「${word}」itself. Do not use any difficult or uncommon vocabulary.
+- Be 8–18 Japanese characters long. Short and punchy, suitable for an Anki i+1 card front.
+- If the word is usually written in kanji, include it in kanji form.
+
+Return only the Japanese sentence, nothing else.`
+}
+
+export function resolveManualVocabPrompt(word: string, targetLanguage: string, context?: string) {
+  const contextBlock = context?.trim()
+    ? `\nOptional learner-provided context:\n"""\n${context.trim()}\n"""\n`
+    : ''
+
+  return `A Japanese learner heard or remembered the vocabulary item「${word}」.
+${contextBlock}
+The context may be empty. Use it only if it helps identify the intended word or meaning.
+
+Decide whether this vocabulary item is clear enough to generate a useful study sentence.
+
+Rules:
+- In most cases, treat the word as clear. Do not ask for clarification just because a word has several dictionary senses.
+- Only mark it ambiguous when there are genuinely different common Japanese words/readings/meanings that fit the same written or heard form and choosing one would likely produce the wrong card.
+- If clear, return the most useful dictionary-form vocabulary item and a short ${targetLanguage} meaning.
+- If ambiguous, return 2-5 likely options, each with the vocabulary item and a short ${targetLanguage} meaning.
+
+Return JSON only, with one of these shapes:
+{"status":"clear","word":"...","meaning":"..."}
+{"status":"ambiguous","options":[{"word":"...","meaning":"..."},{"word":"...","meaning":"..."}]}`
+}
+
+export function generateManualExamplePrompt(
+  word: string,
+  jlptLevel: JlptLevel,
+  options: GenerateOptions = {},
+  meaning?: string,
+  context?: string,
+) {
+  const { previousSentence, simplify, feedback } = options
+
+  const vocabConstraint = simplify
+    ? 'only N5 vocabulary (the most basic, common words possible)'
+    : `only ${VOCAB_CEILING[jlptLevel]}`
+
+  const meaningBlock = meaning
+    ? `Intended meaning: ${meaning}\n`
+    : ''
+
+  const contextBlock = context?.trim()
+    ? `Learner-provided context: ${context.trim()}\n`
+    : ''
+
+  const previousBlock = previousSentence
+    ? `Previous attempt: 「${previousSentence}」\n`
+    : ''
+
+  const revisionInstruction = feedback
+    ? `The learner's feedback on the previous sentence: "${feedback}"\nRevise the sentence to address this feedback.`
+    : simplify
+      ? 'The previous sentence was too difficult. Generate a simpler version.'
+      : 'Generate a fresh example.'
+
+  return `Write ONE short Japanese example sentence for the vocabulary item「${word}」.
+
+${meaningBlock}${contextBlock}${previousBlock}${revisionInstruction}
+
+The sentence must:
+- Use「${word}」with the intended meaning.
 - Use ${vocabConstraint} for every word except「${word}」itself. Do not use any difficult or uncommon vocabulary.
 - Be 8–18 Japanese characters long. Short and punchy, suitable for an Anki i+1 card front.
 - If the word is usually written in kanji, include it in kanji form.
