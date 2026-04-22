@@ -55,6 +55,10 @@ To test it from another device on the same network:
 npm run preview:host
 ```
 
+## Feature Flags
+
+- `VITE_FEATURE_ANKI_BACKFILL`: controls the `/anki-backfill` route and nav tab. Defaults to enabled in dev and disabled in production builds.
+
 ## Deployment
 
 Upload the contents of `dist/` to a static web host configured for single-page app fallback.
@@ -63,7 +67,7 @@ The app uses browser-history routes:
 
 - `/`
 - `/manual-vocab`
-- `/anki-backfill`
+- `/anki-backfill` when `VITE_FEATURE_ANKI_BACKFILL` is enabled
 
 The host must serve `index.html` for those routes. The build includes a Netlify-style `_redirects` file for hosts that support it. The Vite build is configured for hosting at a domain root.
 

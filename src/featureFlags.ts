@@ -1,0 +1,1 @@
+export const isAnkiBackfillEnabled = __ANKI_BACKFILL_ENABLED__

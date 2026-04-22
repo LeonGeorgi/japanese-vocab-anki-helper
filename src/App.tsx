@@ -1,17 +1,22 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, NavLink, Route, Routes } from 'react-router'
 import type { JlptLevel } from './types'
 import { KEY_API_KEY, KEY_JLPT_LEVEL, KEY_NATIVE_LANG } from './constants'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useNotification } from './hooks/useNotification'
 import { useTextVocabWorkflow } from './hooks/useTextVocabWorkflow'
+import { isAnkiBackfillEnabled } from './featureFlags'
 import { Header } from './components/Header'
 import { ApiKeyPanel } from './components/ApiKeyPanel'
 import { ImageStep } from './components/ImageStep'
 import { TranscriptionStep } from './components/TranscriptionStep'
 import { VocabTable } from './components/VocabTable'
-import { AnkiBackfillPanel } from './components/AnkiBackfillPanel'
 import { ManualVocabPanel } from './components/ManualVocabPanel'
 import './App.css'
+
+const AnkiBackfillPanel = isAnkiBackfillEnabled
+  ? lazy(() => import('./components/AnkiBackfillPanel').then(module => ({ default: module.AnkiBackfillPanel })))
+  : null
 
 export default function App() {
   const [apiKey, setApiKey] = useLocalStorage(KEY_API_KEY, '')
@@ -45,9 +50,11 @@ export default function App() {
         <NavLink to="/manual-vocab" className={({ isActive }) => `app-tab ${isActive ? 'active' : ''}`}>
           Manual Vocab
         </NavLink>
-        <NavLink to="/anki-backfill" className={({ isActive }) => `app-tab ${isActive ? 'active' : ''}`}>
-          Anki Backfill
-        </NavLink>
+        {isAnkiBackfillEnabled && (
+          <NavLink to="/anki-backfill" className={({ isActive }) => `app-tab ${isActive ? 'active' : ''}`}>
+            Anki Backfill
+          </NavLink>
+        )}
       </div>
       <ApiKeyPanel apiKey={apiKey} onSave={setApiKey} />
       <Routes>
@@ -100,16 +107,20 @@ export default function App() {
             />
           }
         />
-        <Route
-          path="/anki-backfill"
-          element={
-            <AnkiBackfillPanel
-              apiKey={apiKey}
-              nativeLanguage={nativeLanguage}
-              onNotify={notify}
-            />
-          }
-        />
+        {AnkiBackfillPanel && (
+          <Route
+            path="/anki-backfill"
+            element={
+              <Suspense fallback={null}>
+                <AnkiBackfillPanel
+                  apiKey={apiKey}
+                  nativeLanguage={nativeLanguage}
+                  onNotify={notify}
+                />
+              </Suspense>
+            }
+          />
+        )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
