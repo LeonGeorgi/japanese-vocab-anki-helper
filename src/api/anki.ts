@@ -1,15 +1,27 @@
 const ANKI_CONNECT = 'http://127.0.0.1:8765'
 
-async function invokeAnki<T>(action: string, params?: Record<string, unknown>): Promise<T> {
+async function invokeAnki<T>(
+  action: string,
+  params?: Record<string, unknown>,
+  options?: { timeoutMs?: number },
+): Promise<T> {
+  const timeoutMs = options?.timeoutMs
+  const controller = timeoutMs ? new AbortController() : null
+  const timeout = controller
+    ? window.setTimeout(() => controller.abort(), timeoutMs)
+    : null
   let response: Response
   try {
     response = await fetch(ANKI_CONNECT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, version: 6, params }),
+      signal: controller?.signal,
     })
   } catch {
     throw new Error('Could not reach AnkiConnect. Is Anki running?')
+  } finally {
+    if (timeout !== null) window.clearTimeout(timeout)
   }
   const data = await response.json() as { error: string | null; result: T }
   if (data.error) throw new Error(data.error)
@@ -104,6 +116,10 @@ export async function getModelNames(): Promise<string[]> {
 
 export async function getModelFieldNames(modelName: string): Promise<string[]> {
   return invokeAnki<string[]>('modelFieldNames', { modelName })
+}
+
+export async function getAnkiConnectVersion(): Promise<number> {
+  return invokeAnki<number>('version', undefined, { timeoutMs: 3000 })
 }
 
 export async function storeMediaFileData(filename: string, base64: string): Promise<void> {

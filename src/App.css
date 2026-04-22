@@ -36,34 +36,40 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 40px;
+  gap: 16px;
+  margin-bottom: 28px;
   position: sticky;
   top: 0;
   z-index: 100;
   background: var(--bg);
-  padding-top: 24px;
-  padding-bottom: 16px;
-  margin-top: -24px;
+  padding-top: 14px;
+  padding-bottom: 12px;
+  margin-top: -14px;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.75);
+}
+
+.header-brand {
+  min-width: 126px;
 }
 
 .header h1 {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
-  letter-spacing: -0.3px;
   color: var(--text);
+  line-height: 1.15;
 }
 
 .header p {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--text-muted);
-  margin-top: 2px;
+  margin-top: 1px;
+  white-space: nowrap;
 }
 
 .header-right {
   display: flex;
-  flex-direction: column;
+  min-width: 0;
   align-items: flex-end;
-  gap: 10px;
 }
 
 .app-tabs {
@@ -96,7 +102,8 @@
 }
 
 .btn-reset {
-  padding: 4px 10px;
+  height: 30px;
+  padding: 0 10px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
@@ -114,12 +121,72 @@
 
 .header-controls {
   display: flex;
-  gap: 20px;
-  align-items: flex-start;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.anki-connection {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 5px 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.anki-connection-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #d1d5db;
+}
+
+.anki-connection-dot.connected {
+  background: #22c55e;
+}
+
+.anki-connection-dot.checking {
+  background: #f59e0b;
+}
+
+.anki-connection-dot.offline {
+  background: var(--danger);
+}
+
+.anki-retry-btn {
+  height: 22px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.anki-retry-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.anki-retry-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .language-input {
-  padding: 5px 10px;
+  height: 30px;
+  padding: 0 9px;
   border-radius: 6px;
   font-size: 13px;
   border: 1px solid var(--border);
@@ -138,17 +205,17 @@
 /* JLPT selector */
 .jlpt-selector {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
 }
 
 .jlpt-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.6px;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .jlpt-buttons {
@@ -157,7 +224,8 @@
 }
 
 .jlpt-btn {
-  padding: 5px 10px;
+  height: 30px;
+  padding: 0 9px;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
@@ -177,6 +245,21 @@
   background: var(--accent);
   border-color: var(--accent);
   color: white;
+}
+
+@media (max-width: 680px) {
+  .header {
+    align-items: flex-start;
+  }
+
+  .header-right {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .header-controls {
+    justify-content: flex-start;
+  }
 }
 
 /* API Key */

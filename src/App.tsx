@@ -4,6 +4,7 @@ import type { JlptLevel } from './types'
 import { KEY_API_KEY, KEY_JLPT_LEVEL, KEY_NATIVE_LANG } from './constants'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useNotification } from './hooks/useNotification'
+import { useAnkiConnection } from './hooks/useAnkiConnection'
 import { useTextVocabWorkflow } from './hooks/useTextVocabWorkflow'
 import { isAnkiBackfillEnabled } from './featureFlags'
 import { Header } from './components/Header'
@@ -24,6 +25,7 @@ export default function App() {
   const [nativeLanguage, setNativeLanguage] = useLocalStorage(KEY_NATIVE_LANG, '')
 
   const { notification, notify } = useNotification()
+  const ankiConnection = useAnkiConnection()
   const vocab = useTextVocabWorkflow(apiKey, nativeLanguage, jlptLevel)
 
   const hasData = !!vocab.transcription || vocab.words.length > 0
@@ -40,6 +42,7 @@ export default function App() {
         onLevelChange={setJlptLevel}
         nativeLanguage={nativeLanguage}
         onNativeLanguageChange={setNativeLanguage}
+        ankiConnection={ankiConnection}
         showReset={hasData}
         onReset={vocab.reset}
       />
