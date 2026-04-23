@@ -1,17 +1,24 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { NavLink } from 'react-router'
 import { JLPT_LEVELS } from '../constants'
-import type { TextVocabHistoryEntry } from '../state/vocabSessionAtoms'
+import type { ManualVocabHistoryEntry, TextVocabHistoryEntry } from '../state/vocabSessionAtoms'
 import type { JlptLevel } from '../types'
 import styles from './AppSidebar.module.css'
 
+type SidebarSessionEntry =
+  | (TextVocabHistoryEntry & { kind: 'text' })
+  | (ManualVocabHistoryEntry & { kind: 'manual' })
+
 interface Props {
-  entries: TextVocabHistoryEntry[]
-  activeTextSessionId: string
+  entries: SidebarSessionEntry[]
+  activeSessionId: string
   collapsed: boolean
   onCollapsedChange: (collapsed: boolean) => void
   onOpenSettings: () => void
   onRestoreTextSession: (id: string) => void
-  onDeleteTextSession: (id: string) => void
+  onRestoreManualSession: (id: string) => void
+  onDeleteSession: (kind: 'text' | 'manual', id: string) => void
+  showAnkiBackfill: boolean
   jlptLevel: JlptLevel
   onLevelChange: (level: JlptLevel) => void
   nativeLanguage: string
@@ -25,28 +32,115 @@ const dateFormatter = new Intl.DateTimeFormat(undefined, {
   minute: '2-digit',
 })
 
+const otherLanguageValue = '__other__'
+
+interface LanguageOption {
+  code: string
+  fallbackName: string
+}
+
+const commonLanguages = [
+  { code: 'en', fallbackName: 'English' },
+  { code: 'zh-Hans', fallbackName: 'Mandarin Chinese' },
+  { code: 'es', fallbackName: 'Spanish' },
+  { code: 'hi', fallbackName: 'Hindi' },
+  { code: 'ar', fallbackName: 'Arabic' },
+  { code: 'bn', fallbackName: 'Bengali' },
+  { code: 'pt', fallbackName: 'Portuguese' },
+  { code: 'ru', fallbackName: 'Russian' },
+  { code: 'de', fallbackName: 'German' },
+  { code: 'fr', fallbackName: 'French' },
+  { code: 'ko', fallbackName: 'Korean' },
+  { code: 'it', fallbackName: 'Italian' },
+  { code: 'tr', fallbackName: 'Turkish' },
+  { code: 'vi', fallbackName: 'Vietnamese' },
+  { code: 'id', fallbackName: 'Indonesian' },
+  { code: 'pl', fallbackName: 'Polish' },
+  { code: 'nl', fallbackName: 'Dutch' },
+  { code: 'th', fallbackName: 'Thai' },
+]
+
+function browserLanguageOptions(): LanguageOption[] {
+  if (typeof navigator === 'undefined') return []
+
+  return uniqueLanguageOptionsByCode(
+    navigator.languages.map(language => ({
+      code: language,
+      fallbackName: language,
+    })),
+  )
+}
+
+function uniqueLanguageOptionsByCode(values: LanguageOption[]): LanguageOption[] {
+  const seen = new Set<string>()
+  return values.filter(value => {
+    const key = value.code.toLocaleLowerCase()
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function baseLanguageCode(code: string): string {
+  return code.toLocaleLowerCase().split('-')[0]
+}
+
+function languageOptionValue(option: LanguageOption): string {
+  return languageAutonym(option)
+}
+
+function languageAutonym(option: LanguageOption): string {
+  if (typeof Intl.DisplayNames !== 'function') return option.fallbackName
+  return new Intl.DisplayNames([option.code], { type: 'language' }).of(option.code) ?? option.fallbackName
+}
+
 export function AppSidebar({
   entries,
-  activeTextSessionId,
+  activeSessionId,
   collapsed,
   onCollapsedChange,
   onOpenSettings,
   onRestoreTextSession,
-  onDeleteTextSession,
+  onRestoreManualSession,
+  onDeleteSession,
+  showAnkiBackfill,
   jlptLevel,
   onLevelChange,
   nativeLanguage,
   onNativeLanguageChange,
 }: Props) {
-  const [nativeLanguageDraft, setNativeLanguageDraft] = useState(nativeLanguage)
-
-  useEffect(() => {
-    setNativeLanguageDraft(nativeLanguage)
-  }, [nativeLanguage])
+  const browserLanguages = browserLanguageOptions()
+  const commonLanguageOptions = commonLanguages.filter(language =>
+    !browserLanguages.some(browserLanguage => baseLanguageCode(browserLanguage.code) === baseLanguageCode(language.code))
+  )
+  const knownLanguages = [...browserLanguages, ...commonLanguageOptions]
+  const matchingKnownLanguage = knownLanguages.find(language =>
+    languageOptionValue(language).toLocaleLowerCase() === nativeLanguage.toLocaleLowerCase()
+  )
+  const [customLanguage, setCustomLanguage] = useState(nativeLanguage)
+  const [customLanguageOpen, setCustomLanguageOpen] = useState(() => !matchingKnownLanguage && !!nativeLanguage)
+  const selectedLanguage = customLanguageOpen
+    ? otherLanguageValue
+    : matchingKnownLanguage
+      ? matchingKnownLanguage.code
+      : nativeLanguage
+      ? otherLanguageValue
+      : ''
 
   function commitNativeLanguage(value: string) {
     const trimmed = value.trim()
     if (trimmed !== nativeLanguage) onNativeLanguageChange(trimmed)
+  }
+
+  function selectNativeLanguage(value: string) {
+    if (value === otherLanguageValue) {
+      setCustomLanguage(nativeLanguage)
+      setCustomLanguageOpen(true)
+      return
+    }
+    setCustomLanguageOpen(false)
+    const selectedOption = knownLanguages.find(language => language.code === value)
+    commitNativeLanguage(selectedOption ? languageOptionValue(selectedOption) : value)
   }
 
   return (
@@ -77,14 +171,43 @@ export function AppSidebar({
           <section className={styles.quickSettings}>
             <label className={styles.field}>
               <span className={styles.fieldLabel}>Native language</span>
-              <input
+              <select
                 className={styles.input}
-                type="text"
-                placeholder="e.g. English"
-                value={nativeLanguageDraft}
-                onChange={e => setNativeLanguageDraft(e.target.value)}
-                onBlur={e => commitNativeLanguage(e.target.value)}
-              />
+                value={selectedLanguage}
+                onChange={e => selectNativeLanguage(e.target.value)}
+              >
+                <option value="">Choose language</option>
+                {browserLanguages.length > 0 && (
+                  <optgroup label="Browser languages">
+                    {browserLanguages.map(language => (
+                      <option key={language.code} value={language.code}>
+                        {languageAutonym(language)}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label="Other common languages">
+                  {commonLanguageOptions.map(language => (
+                    <option key={language.code} value={language.code}>
+                      {languageAutonym(language)}
+                    </option>
+                  ))}
+                </optgroup>
+                <option value={otherLanguageValue}>Other</option>
+              </select>
+              {selectedLanguage === otherLanguageValue && (
+                <input
+                  className={styles.input}
+                  type="text"
+                  placeholder="Enter language"
+                  value={customLanguage}
+                  onChange={e => setCustomLanguage(e.target.value)}
+                  onBlur={e => commitNativeLanguage(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') e.currentTarget.blur()
+                  }}
+                />
+              )}
             </label>
 
             <div className={styles.field}>
@@ -112,23 +235,26 @@ export function AppSidebar({
               {entries.map(entry => (
                 <div
                   key={entry.id}
-                  className={`${styles.entry} ${entry.id === activeTextSessionId ? styles.activeEntry : ''}`}
+                  className={`${styles.entry} ${entry.id === activeSessionId ? styles.activeEntry : ''}`}
                 >
                   <button
                     type="button"
                     className={styles.entryMain}
-                    onClick={() => onRestoreTextSession(entry.id)}
+                    onClick={() => {
+                      if (entry.kind === 'text') onRestoreTextSession(entry.id)
+                      else onRestoreManualSession(entry.id)
+                    }}
                   >
                     <div className={styles.entryTitle}>{entry.title}</div>
                     <div className={styles.entryMeta}>
-                      Text vocab · {entry.session.words.length} words · {dateFormatter.format(entry.updatedAt)}
+                      {entry.kind === 'text' ? 'Text vocab' : 'Manual vocab'} · {entry.session.words.length} words · {dateFormatter.format(entry.updatedAt)}
                     </div>
                   </button>
                   <button
                     type="button"
                     className={styles.deleteButton}
                     title="Delete session"
-                    onClick={() => onDeleteTextSession(entry.id)}
+                    onClick={() => onDeleteSession(entry.kind, entry.id)}
                   >
                     ×
                   </button>
@@ -136,6 +262,19 @@ export function AppSidebar({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {showAnkiBackfill && (
+        <div className={styles.footer}>
+          <NavLink
+            to="/anki-backfill"
+            className={({ isActive }) => `${styles.footerLink} ${isActive ? styles.activeFooterLink : ''}`}
+            title="Anki Backfill"
+          >
+            <span className={styles.footerIcon}>A</span>
+            {!collapsed && <span>Anki Backfill</span>}
+          </NavLink>
         </div>
       )}
     </aside>

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { AnkiConnectionState } from '../primitives/anki/useAnkiConnection'
 import styles from './Header.module.css'
 
@@ -8,14 +9,14 @@ interface Props {
     error: string | null
     retry: () => void
   }
-  showReset: boolean
-  onReset: () => void
+  onNewSession: (kind: 'text' | 'manual') => void
 }
 
 export function Header({
   ankiConnection,
-  showReset, onReset,
+  onNewSession,
 }: Props) {
+  const [newSessionOpen, setNewSessionOpen] = useState(false)
   const ankiLabel = ankiConnection.status === 'connected'
     ? 'Connected'
     : ankiConnection.status === 'checking'
@@ -31,7 +32,7 @@ export function Header({
     <header className={styles.header}>
       <div className={styles.brand}>
         <h1>Vocab</h1>
-        <p>Extract words from any photo</p>
+        <p>Create Japanese Anki cards</p>
       </div>
       <div className={styles.right}>
         <div className={styles.controls}>
@@ -48,11 +49,38 @@ export function Header({
               Retry
             </button>
           </div>
-          {showReset && (
-            <button className={styles.resetButton} onClick={onReset} title="Clear all data">
-              Reset
+          <div className={styles.newSessionMenu}>
+            <button
+              className={styles.resetButton}
+              onClick={() => setNewSessionOpen(open => !open)}
+              title="Start a new session"
+              aria-expanded={newSessionOpen}
+            >
+              New session
             </button>
-          )}
+            {newSessionOpen && (
+              <div className={styles.newSessionPopover}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewSessionOpen(false)
+                    onNewSession('text')
+                  }}
+                >
+                  Text vocab
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewSessionOpen(false)
+                    onNewSession('manual')
+                  }}
+                >
+                  Manual vocab
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

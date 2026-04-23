@@ -1,12 +1,17 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
-import { Navigate, NavLink, Route, Routes, useNavigate } from 'react-router'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { useNotification } from './hooks/useNotification'
 import { useAnkiConnection } from './primitives/anki/useAnkiConnection'
 import { isAnkiBackfillEnabled } from './featureFlags'
 import { apiKeyAtom, jlptLevelAtom, nativeLanguageAtom } from './state/settingsAtoms'
 import {
+  deleteManualVocabHistoryEntryAtom,
   deleteTextVocabHistoryEntryAtom,
+  manualVocabHistoryAtom,
+  manualVocabSessionAtom,
+  resetManualVocabAtom,
+  restoreManualVocabHistoryAtom,
   resetTextVocabAtom,
   restoreTextVocabHistoryAtom,
   textVocabHistoryAtom,
@@ -23,6 +28,15 @@ const AnkiBackfillPanel = isAnkiBackfillEnabled
   ? lazy(() => import('./views/anki-backfill/AnkiBackfillPanel').then(module => ({ default: module.AnkiBackfillPanel })))
   : null
 
+type VocabSessionKind = 'text' | 'manual'
+
+function sessionKindFromId(id: string | null): VocabSessionKind | null {
+  if (!id) return null
+  if (id.startsWith('text_')) return 'text'
+  if (id.startsWith('manual_')) return 'manual'
+  return null
+}
+
 export default function App() {
   const [apiKey, setApiKey] = useAtom(apiKeyAtom)
   const [jlptLevel, setJlptLevel] = useAtom(jlptLevelAtom)
@@ -30,21 +44,69 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
+  const location = useLocation()
   const navigate = useNavigate()
   const { notification, notify } = useNotification()
   const ankiConnection = useAnkiConnection()
   const textVocabSession = useAtomValue(textVocabSessionAtom)
   const textVocabHistory = useAtomValue(textVocabHistoryAtom)
+  const manualVocabSession = useAtomValue(manualVocabSessionAtom)
+  const manualVocabHistory = useAtomValue(manualVocabHistoryAtom)
   const resetTextVocab = useSetAtom(resetTextVocabAtom)
+  const resetManualVocab = useSetAtom(resetManualVocabAtom)
   const restoreTextVocabHistory = useSetAtom(restoreTextVocabHistoryAtom)
   const deleteTextVocabHistoryEntry = useSetAtom(deleteTextVocabHistoryEntryAtom)
+  const restoreManualVocabHistory = useSetAtom(restoreManualVocabHistoryAtom)
+  const deleteManualVocabHistoryEntry = useSetAtom(deleteManualVocabHistoryEntryAtom)
 
-  const hasData = !!textVocabSession.transcription || textVocabSession.words.length > 0
+  const routeSessionId = location.pathname.match(/^\/session\/([^/]+)$/)?.[1] ?? null
+  const textHistoryEntry = routeSessionId ? textVocabHistory.find(entry => entry.id === routeSessionId) : undefined
+  const manualHistoryEntry = routeSessionId ? manualVocabHistory.find(entry => entry.id === routeSessionId) : undefined
+  const routeSessionKind: VocabSessionKind | null = routeSessionId === textVocabSession.id || textHistoryEntry
+    ? 'text'
+    : routeSessionId === manualVocabSession.id || manualHistoryEntry
+      ? 'manual'
+      : sessionKindFromId(routeSessionId)
+  const activeSessionId = routeSessionKind ? routeSessionId ?? '' : ''
+
+  const sessionHistory = [
+    ...textVocabHistory.map(entry => ({ ...entry, kind: 'text' as const })),
+    ...manualVocabHistory.map(entry => ({ ...entry, kind: 'manual' as const })),
+  ].sort((a, b) => b.updatedAt - a.updatedAt)
+
+  useEffect(() => {
+    if (!routeSessionId) return
+    if (window.location.pathname !== `/session/${routeSessionId}`) return
+    if (routeSessionId === textVocabSession.id || routeSessionId === manualVocabSession.id) return
+
+    if (textHistoryEntry) restoreTextVocabHistory(routeSessionId)
+    else if (manualHistoryEntry) restoreManualVocabHistory(routeSessionId)
+  }, [
+    manualHistoryEntry,
+    manualVocabSession.id,
+    restoreManualVocabHistory,
+    restoreTextVocabHistory,
+    routeSessionId,
+    textHistoryEntry,
+    textVocabSession.id,
+  ])
 
   function handleRestoreTextSession(id: string) {
-    restoreTextVocabHistory(id)
-    navigate('/')
-    notify({ type: 'success', message: 'Session restored.' })
+    navigate(`/session/${id}`)
+  }
+
+  function handleRestoreManualSession(id: string) {
+    navigate(`/session/${id}`)
+  }
+
+  function handleDeleteSession(kind: VocabSessionKind, id: string) {
+    if (kind === 'text') deleteTextVocabHistoryEntry(id)
+    else deleteManualVocabHistoryEntry(id)
+  }
+
+  function handleNewSession(kind: VocabSessionKind) {
+    const id = kind === 'text' ? resetTextVocab() : resetManualVocab()
+    navigate(`/session/${id}`)
   }
 
   return (
@@ -55,13 +117,15 @@ export default function App() {
         </div>
       )}
       <AppSidebar
-        entries={textVocabHistory}
-        activeTextSessionId={textVocabSession.id}
+        entries={sessionHistory}
+        activeSessionId={activeSessionId}
         collapsed={sidebarCollapsed}
         onCollapsedChange={setSidebarCollapsed}
         onOpenSettings={() => setSettingsOpen(true)}
         onRestoreTextSession={handleRestoreTextSession}
-        onDeleteTextSession={deleteTextVocabHistoryEntry}
+        onRestoreManualSession={handleRestoreManualSession}
+        onDeleteSession={handleDeleteSession}
+        showAnkiBackfill={isAnkiBackfillEnabled}
         jlptLevel={jlptLevel}
         onLevelChange={setJlptLevel}
         nativeLanguage={nativeLanguage}
@@ -70,43 +134,32 @@ export default function App() {
       <main className={styles.main}>
         <Header
           ankiConnection={ankiConnection}
-          showReset={hasData}
-          onReset={resetTextVocab}
+          onNewSession={handleNewSession}
         />
-        <div className={styles.tabs}>
-          <NavLink to="/" end className={({ isActive }) => `${styles.tab} ${isActive ? styles.activeTab : ''}`}>
-            Text Vocab
-          </NavLink>
-          <NavLink to="/manual-vocab" className={({ isActive }) => `${styles.tab} ${isActive ? styles.activeTab : ''}`}>
-            Manual Vocab
-          </NavLink>
-          {isAnkiBackfillEnabled && (
-            <NavLink to="/anki-backfill" className={({ isActive }) => `${styles.tab} ${isActive ? styles.activeTab : ''}`}>
-              Anki Backfill
-            </NavLink>
-          )}
-        </div>
         <Routes>
+          <Route path="/" element={<Navigate to={`/session/${textVocabSession.id}`} replace />} />
           <Route
-            path="/"
+            path="/session/:sessionId"
             element={
-              <TextVocabPanel
-                apiKey={apiKey}
-                nativeLanguage={nativeLanguage}
-                jlptLevel={jlptLevel}
-                onNotify={notify}
-              />
-            }
-          />
-          <Route
-            path="/manual-vocab"
-            element={
-              <ManualVocabPanel
-                apiKey={apiKey}
-                nativeLanguage={nativeLanguage}
-                jlptLevel={jlptLevel}
-                onNotify={notify}
-              />
+              routeSessionKind === 'manual'
+                ? (
+                    <ManualVocabPanel
+                      apiKey={apiKey}
+                      nativeLanguage={nativeLanguage}
+                      jlptLevel={jlptLevel}
+                      onNotify={notify}
+                    />
+                  )
+                : routeSessionKind === 'text'
+                  ? (
+                      <TextVocabPanel
+                        apiKey={apiKey}
+                        nativeLanguage={nativeLanguage}
+                        jlptLevel={jlptLevel}
+                        onNotify={notify}
+                      />
+                    )
+                  : <Navigate to={`/session/${textVocabSession.id}`} replace />
             }
           />
           {AnkiBackfillPanel && (
@@ -123,7 +176,7 @@ export default function App() {
               }
             />
           )}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to={`/session/${textVocabSession.id}`} replace />} />
         </Routes>
       </main>
       {settingsOpen && (

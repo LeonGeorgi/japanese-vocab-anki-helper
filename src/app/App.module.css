@@ -39,35 +39,6 @@
   border-color: rgba(220,38,38,0.15);
 }
 
-.tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 18px;
-  border-bottom: 1px solid var(--border);
-}
-
-.tab {
-  text-decoration: none;
-  padding: 9px 12px;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--text-muted);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.tab:hover {
-  color: var(--text);
-}
-
-.activeTab {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-
 @media (max-width: 900px) {
   .shell {
     flex-direction: column;
