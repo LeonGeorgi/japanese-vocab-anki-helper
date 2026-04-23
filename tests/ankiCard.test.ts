@@ -34,13 +34,12 @@ test('toAnkiNoteFields maps generated card data through configured Anki note fie
     })
 })
 
-test('toAnkiNoteFields can leave fields empty or untouched', () => {
+test('toAnkiNoteFields omits unchanged fields', () => {
   expect(
     toAnkiNoteFields(
       {
         Word: 'plainWord',
-        EmptyField: 'empty',
-        ExistingField: 'untouched',
+        ExistingField: 'unchanged',
       },
       {
         before: '',
@@ -53,16 +52,15 @@ test('toAnkiNoteFields can leave fields empty or untouched', () => {
     ),
   ).toEqual({
     Word: '勉強する',
-    EmptyField: '',
   })
 })
 
-test('ankiFieldNamesFromMapping does not invent names for explicitly untouched fields', () => {
+test('ankiFieldNamesFromMapping does not invent names for explicitly unchanged fields', () => {
   expect(
     ankiFieldNamesFromMapping({
       Before: 'before',
       Word: 'word',
-      Sentence: 'untouched',
+      Sentence: 'unchanged',
     }).sentence,
   ).toBe('')
 })

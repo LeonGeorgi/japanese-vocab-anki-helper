@@ -5,6 +5,7 @@ import { useNotification } from './hooks/useNotification'
 import { useAnkiConnection } from './primitives/anki/useAnkiConnection'
 import { isAnkiBackfillEnabled } from './featureFlags'
 import { apiKeyAtom, jlptLevelAtom, nativeLanguageAtom } from './state/settingsAtoms'
+import { settingsDialogOpenAtom } from './state/uiAtoms'
 import {
   deleteManualVocabHistoryEntryAtom,
   deleteTextVocabHistoryEntryAtom,
@@ -41,8 +42,8 @@ export default function App() {
   const [apiKey, setApiKey] = useAtom(apiKeyAtom)
   const [jlptLevel, setJlptLevel] = useAtom(jlptLevelAtom)
   const [nativeLanguage, setNativeLanguage] = useAtom(nativeLanguageAtom)
+  const [settingsOpen, setSettingsOpen] = useAtom(settingsDialogOpenAtom)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const location = useLocation()
   const navigate = useNavigate()

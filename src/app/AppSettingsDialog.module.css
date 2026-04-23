@@ -175,6 +175,10 @@
   background: var(--surface);
 }
 
+.unmappedSelect {
+  color: var(--text-muted);
+}
+
 .ankiFieldName {
   min-width: 0;
   color: var(--text);

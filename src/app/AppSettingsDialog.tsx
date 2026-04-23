@@ -24,8 +24,7 @@ interface Props {
 }
 
 const mappingOptions: { value: AnkiFieldMappingValue; label: string }[] = [
-  { value: 'untouched', label: 'Leave untouched' },
-  { value: 'empty', label: 'Empty' },
+  { value: 'unchanged', label: 'Unmapped' },
   { value: 'before', label: 'Before target word' },
   { value: 'word', label: 'Target word with furigana' },
   { value: 'after', label: 'After target word' },
@@ -181,7 +180,7 @@ export function AppSettingsDialog({ apiKey, onApiKeyChange, onClose }: Props) {
                       <label key={fieldName} className={styles.mappingRow}>
                         <span className={styles.ankiFieldName}>{fieldName}</span>
                         <select
-                          className="modal-input"
+                          className={`modal-input ${resolvedFieldMapping[fieldName] === 'unchanged' ? styles.unmappedSelect : ''}`}
                           value={resolvedFieldMapping[fieldName]}
                           onChange={e => setFieldMapping(prev =>
                             mergeFieldMappingValue(prev, fieldName, e.target.value as AnkiFieldMappingValue),

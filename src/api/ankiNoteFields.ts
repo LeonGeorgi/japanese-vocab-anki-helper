@@ -1,7 +1,7 @@
 import type { AnkiFieldNames, GeneratedAnkiFields } from './ankiCard'
 
 export type AnkiGeneratedFieldKey = keyof GeneratedAnkiFields | 'image'
-export type AnkiFieldMappingValue = AnkiGeneratedFieldKey | 'empty' | 'untouched'
+export type AnkiFieldMappingValue = AnkiGeneratedFieldKey | 'unchanged'
 export type AnkiFieldMapping = Record<string, AnkiFieldMappingValue>
 
 const defaultFieldNames: Record<AnkiGeneratedFieldKey, string> = {
@@ -31,7 +31,7 @@ export function toAnkiNoteFields(
 ) {
   const fields: Record<string, string> = {}
   for (const [fieldName, source] of Object.entries(fieldMapping)) {
-    if (source === 'untouched') continue
+    if (source === 'unchanged') continue
     fields[fieldName] = valueForSource(source, generatedFields, imageFieldValue)
   }
   return fields
@@ -89,7 +89,7 @@ function fieldNameForSource(fieldMapping: AnkiFieldMapping, source: AnkiGenerate
 function inferredFieldMappingValue(fieldName: string): AnkiFieldMappingValue {
   const normalized = normalizeFieldName(fieldName)
   const source = Object.entries(fieldNameHints).find(([, hints]) => hints.includes(normalized))?.[0]
-  return source ? source as AnkiGeneratedFieldKey : 'untouched'
+  return source ? source as AnkiGeneratedFieldKey : 'unchanged'
 }
 
 function normalizeFieldName(fieldName: string): string {
@@ -97,11 +97,10 @@ function normalizeFieldName(fieldName: string): string {
 }
 
 function valueForSource(
-  source: Exclude<AnkiFieldMappingValue, 'untouched'>,
+  source: Exclude<AnkiFieldMappingValue, 'unchanged'>,
   generatedFields: GeneratedAnkiFields,
   imageFieldValue: string,
 ): string {
-  if (source === 'empty') return ''
   if (source === 'image') return imageFieldValue
   return generatedFields[source]
 }
