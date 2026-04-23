@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAtomValue } from 'jotai'
 import type { Word } from '../../types'
 import { findNotes } from '../../api/anki'
-import { ankiFieldPlainWordAtom, ankiLookupDeckAtom } from '../../state/ankiAtoms'
+import { ankiFieldNamesFromMapping } from '../../api/ankiNoteFields'
+import { ankiFieldMappingAtom, ankiLookupDeckAtom } from '../../state/ankiAtoms'
 
 export function useAnkiStatus(words: Word[]) {
   const deck = useAtomValue(ankiLookupDeckAtom)
-  const fieldName = useAtomValue(ankiFieldPlainWordAtom)
+  const fieldMapping = useAtomValue(ankiFieldMappingAtom)
+  const fieldName = ankiFieldNamesFromMapping(fieldMapping).plainWord
   const [inAnki, setInAnki] = useState<Set<string>>(new Set())
 
   const refresh = useCallback(async () => {

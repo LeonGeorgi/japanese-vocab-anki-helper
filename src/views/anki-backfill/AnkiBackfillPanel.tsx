@@ -1,17 +1,12 @@
 import { useMemo } from 'react'
-import { useAtom } from 'jotai'
+import { useAtom, useAtomValue } from 'jotai'
 import type { AnkiFieldNames } from '../../api/ankiCard'
-import { AnkiFieldSelect, AnkiModelSelect } from '../../primitives/anki/AnkiSelectors'
+import { ankiFieldNamesFromMapping, fieldMappingForModelFields } from '../../api/ankiNoteFields'
 import { useAnkiBackfill } from './useAnkiBackfill'
 import { useAnkiModelFields } from '../../primitives/anki/useAnkiModelFields'
 import {
   ankiBackfillDeckAtom,
-  ankiFieldAfterAtom,
-  ankiFieldBeforeAtom,
-  ankiFieldDefinitionAtom,
-  ankiFieldPlainWordAtom,
-  ankiFieldSentenceAtom,
-  ankiFieldWordAtom,
+  ankiFieldMappingAtom,
   ankiModelAtom,
 } from '../../state/ankiAtoms'
 import styles from './AnkiBackfillPanel.module.css'
@@ -26,36 +21,27 @@ interface Props {
 
 export function AnkiBackfillPanel({ apiKey, nativeLanguage, onNotify }: Props) {
   const [deck, setDeck] = useAtom(ankiBackfillDeckAtom)
-  const [model, setModel] = useAtom(ankiModelAtom)
-  const [fieldBeforeName, setFieldBeforeName] = useAtom(ankiFieldBeforeAtom)
-  const [fieldWordName, setFieldWordName] = useAtom(ankiFieldWordAtom)
-  const [fieldAfterName, setFieldAfterName] = useAtom(ankiFieldAfterAtom)
-  const [fieldPlainWordName, setFieldPlainWordName] = useAtom(ankiFieldPlainWordAtom)
-  const [fieldDefinitionName, setFieldDefinitionName] = useAtom(ankiFieldDefinitionAtom)
-  const [fieldSentenceName, setFieldSentenceName] = useAtom(ankiFieldSentenceAtom)
-  const fieldNameValues = [
-    fieldBeforeName,
-    fieldWordName,
-    fieldAfterName,
-    fieldPlainWordName,
-    fieldDefinitionName,
-    fieldSentenceName,
-  ]
-  const { fields: modelFields, loading: modelFieldsLoading, error: modelFieldsError } = useAnkiModelFields(model, fieldNameValues)
+  const model = useAtomValue(ankiModelAtom)
+  const fieldMapping = useAtomValue(ankiFieldMappingAtom)
+  const { fields: modelFields, error: modelFieldsError } = useAnkiModelFields(model, Object.keys(fieldMapping))
 
-  const fieldNames: AnkiFieldNames = useMemo(() => ({
-    before: fieldBeforeName,
-    word: fieldWordName,
-    after: fieldAfterName,
-    plainWord: fieldPlainWordName,
-    definition: fieldDefinitionName,
-    sentence: fieldSentenceName,
-    image: '',
-  }), [fieldAfterName, fieldBeforeName, fieldDefinitionName, fieldPlainWordName, fieldSentenceName, fieldWordName])
+  const fieldNames: AnkiFieldNames = useMemo(
+    () => ankiFieldNamesFromMapping(
+      modelFields.length > 0 ? fieldMappingForModelFields(modelFields, fieldMapping) : fieldMapping,
+      modelFields,
+    ),
+    [fieldMapping, modelFields],
+  )
 
   const backfill = useAnkiBackfill(apiKey, nativeLanguage, fieldNames)
 
   async function handleLoadMissingTranslations() {
+    const missingFields = requiredBackfillFields(fieldNames)
+    if (missingFields.length > 0) {
+      onNotify({ type: 'error', message: `Configure Anki mapping for ${missingFields.join(', ')} first.` })
+      return
+    }
+
     try {
       const found = await backfill.loadMissingTranslations(deck, model)
       onNotify({ type: 'success', message: `Found ${found} cards without sentence translations.` })
@@ -83,31 +69,7 @@ export function AnkiBackfillPanel({ apiKey, nativeLanguage, onNotify }: Props) {
           </label>
           <label className="modal-field">
             <span className="modal-label">Model</span>
-            <AnkiModelSelect value={model} onChange={setModel} />
-          </label>
-          <label className="modal-field">
-            <span className="modal-label">Before</span>
-            <AnkiFieldSelect value={fieldBeforeName} onChange={setFieldBeforeName} options={modelFields} loading={modelFieldsLoading} />
-          </label>
-          <label className="modal-field">
-            <span className="modal-label">Word</span>
-            <AnkiFieldSelect value={fieldWordName} onChange={setFieldWordName} options={modelFields} loading={modelFieldsLoading} />
-          </label>
-          <label className="modal-field">
-            <span className="modal-label">After</span>
-            <AnkiFieldSelect value={fieldAfterName} onChange={setFieldAfterName} options={modelFields} loading={modelFieldsLoading} />
-          </label>
-          <label className="modal-field">
-            <span className="modal-label">Plain Word</span>
-            <AnkiFieldSelect value={fieldPlainWordName} onChange={setFieldPlainWordName} options={modelFields} loading={modelFieldsLoading} />
-          </label>
-          <label className="modal-field">
-            <span className="modal-label">Word Translation</span>
-            <AnkiFieldSelect value={fieldDefinitionName} onChange={setFieldDefinitionName} options={modelFields} loading={modelFieldsLoading} />
-          </label>
-          <label className="modal-field">
-            <span className="modal-label">Sentence Translation</span>
-            <AnkiFieldSelect value={fieldSentenceName} onChange={setFieldSentenceName} options={modelFields} loading={modelFieldsLoading} />
+            <input className="modal-input" value={model} readOnly />
           </label>
           {modelFieldsError && <span className={`modal-field-hint ${styles.fieldHint}`}>{modelFieldsError}</span>}
         </div>
@@ -154,4 +116,15 @@ export function AnkiBackfillPanel({ apiKey, nativeLanguage, onNotify }: Props) {
       </div>
     </div>
   )
+}
+
+function requiredBackfillFields(fieldNames: AnkiFieldNames): string[] {
+  return [
+    ['before', fieldNames.before],
+    ['word', fieldNames.word],
+    ['after', fieldNames.after],
+    ['plain word', fieldNames.plainWord],
+    ['definition', fieldNames.definition],
+    ['sentence', fieldNames.sentence],
+  ].filter(([, value]) => !value).map(([label]) => label)
 }

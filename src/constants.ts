@@ -16,14 +16,8 @@ export const KEY_ANKI_DECK        = 'vocab_anki_deck'
 export const KEY_ANKI_BACKFILL_DECK = 'vocab_anki_backfill_deck'
 export const KEY_ANKI_LOOKUP_DECK = 'vocab_anki_lookup_deck'
 export const KEY_ANKI_MODEL     = 'vocab_anki_model'
+export const KEY_ANKI_FIELD_MAPPING = 'vocab_anki_field_mapping'
 export const KEY_ANKI_IMG_TYPE  = 'vocab_img_type'
-export const KEY_FIELD_BEFORE        = 'vocab_anki_field_before'
-export const KEY_FIELD_WORD          = 'vocab_anki_field_word'
-export const KEY_FIELD_AFTER         = 'vocab_anki_field_after'
-export const KEY_FIELD_PLAIN_WORD    = 'vocab_anki_field_plain_word'
-export const KEY_FIELD_DEFINITION    = 'vocab_anki_field_definition'
-export const KEY_FIELD_SENTENCE      = 'vocab_anki_field_sentence'
-export const KEY_FIELD_IMAGE         = 'vocab_anki_field_image'
 
 
 // Vocabulary allowed in example sentences for each user level

@@ -1,5 +1,55 @@
 .dialog {
-  width: 680px;
+  width: 760px;
+  max-height: min(720px, calc(100vh - 32px));
+  display: flex;
+  flex-direction: column;
+}
+
+.body {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+}
+
+.settingsNav {
+  padding: 12px;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  overflow-y: auto;
+}
+
+.navButton {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.navButton:hover {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.activeNavButton {
+  background: var(--accent-light);
+  border-color: rgba(37,99,235,0.2);
+  color: var(--accent);
+}
+
+.content {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .section {
@@ -14,6 +64,62 @@
   text-transform: uppercase;
   letter-spacing: 0.7px;
   color: var(--text-muted);
+}
+
+.sectionHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 18px;
+  align-items: start;
+}
+
+.sectionHint {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.modelField {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldControls {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resetMappingButton {
+  width: 100%;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(220,38,38,0.22);
+  border-radius: 7px;
+  background: #fff7f7;
+  color: var(--danger);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.resetMappingButton:hover:not(:disabled) {
+  border-color: rgba(220,38,38,0.38);
+  background: #fef2f2;
+}
+
+.resetMappingButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  background: var(--surface);
+  color: var(--text-muted);
+  border-color: var(--border);
 }
 
 .apiKeyRow {
@@ -52,14 +158,70 @@
   gap: 12px;
 }
 
+.mappingList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mappingRow {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(180px, 1.4fr);
+  gap: 12px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.ankiFieldName {
+  min-width: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emptyFields {
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
 @media (max-width: 720px) {
   .dialog {
     width: calc(100vw - 24px);
     max-width: calc(100vw - 24px);
   }
 
-  .apiKeyRow,
-  .fieldGrid {
+  .body {
     grid-template-columns: 1fr;
   }
+
+  .settingsNav {
+    display: flex;
+    gap: 6px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
+  .navButton {
+    width: auto;
+  }
+
+  .apiKeyRow,
+  .fieldGrid,
+  .sectionHeader,
+  .mappingRow {
+    grid-template-columns: 1fr;
+  }
+
 }

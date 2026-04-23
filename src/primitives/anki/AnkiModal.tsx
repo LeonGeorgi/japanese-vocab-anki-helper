@@ -3,22 +3,14 @@ import { useAtom } from 'jotai'
 import { createPortal } from 'react-dom'
 import { addNote, storeMediaFileData } from '../../api/anki'
 import { generateAnkiFields } from '../../api/ankiCard'
-import { toAnkiNoteFields } from '../../api/ankiNoteFields'
-import { AnkiField, AnkiFieldNameInput } from './AnkiField'
-import { AnkiModelSelect } from './AnkiSelectors'
-import { useAnkiModelFields } from './useAnkiModelFields'
+import { fieldMappingForModelFields, toAnkiNoteFields } from '../../api/ankiNoteFields'
 import {
   ankiDeckAtom,
-  ankiFieldAfterAtom,
-  ankiFieldBeforeAtom,
-  ankiFieldDefinitionAtom,
-  ankiFieldImageAtom,
-  ankiFieldPlainWordAtom,
-  ankiFieldSentenceAtom,
-  ankiFieldWordAtom,
+  ankiFieldMappingAtom,
   ankiImageTypeAtom,
   ankiModelAtom,
 } from '../../state/ankiAtoms'
+import { useAnkiModelFields } from './useAnkiModelFields'
 
 interface Props {
   apiKey: string
@@ -31,27 +23,11 @@ interface Props {
 
 export function AnkiModal({ apiKey, word, sentence, translation, nativeLanguage, onClose }: Props) {
   const [deck, setDeck] = useAtom(ankiDeckAtom)
-  const [model, setModel] = useAtom(ankiModelAtom)
+  const [model] = useAtom(ankiModelAtom)
   const [imgType, setImgType] = useAtom(ankiImageTypeAtom)
+  const [fieldMapping] = useAtom(ankiFieldMappingAtom)
   const [pastedImage, setPastedImage] = useState<string | null>(null)
-
-  const [fieldBeforeName, setFieldBeforeName] = useAtom(ankiFieldBeforeAtom)
-  const [fieldWordName, setFieldWordName] = useAtom(ankiFieldWordAtom)
-  const [fieldAfterName, setFieldAfterName] = useAtom(ankiFieldAfterAtom)
-  const [fieldPlainWordName, setFieldPlainWordName] = useAtom(ankiFieldPlainWordAtom)
-  const [fieldDefinitionName, setFieldDefinitionName] = useAtom(ankiFieldDefinitionAtom)
-  const [fieldSentenceName, setFieldSentenceName] = useAtom(ankiFieldSentenceAtom)
-  const [fieldImageName, setFieldImageName] = useAtom(ankiFieldImageAtom)
-  const fieldNameValues = [
-    fieldBeforeName,
-    fieldWordName,
-    fieldAfterName,
-    fieldPlainWordName,
-    fieldDefinitionName,
-    fieldSentenceName,
-    fieldImageName,
-  ]
-  const { fields: modelFields, loading: modelFieldsLoading, error: modelFieldsError } = useAnkiModelFields(model, fieldNameValues)
+  const { fields: modelFields, error: modelFieldsError } = useAnkiModelFields(model, Object.keys(fieldMapping))
 
   const [fieldBefore, setFieldBefore] = useState('')
   const [fieldWord, setFieldWord] = useState('')
@@ -109,15 +85,8 @@ export function AnkiModal({ apiKey, word, sentence, translation, nativeLanguage,
         await storeMediaFileData(filename, base64)
         imageFieldValue = `<img src="${filename}">`
       }
-      await addNote(deck, model, toAnkiNoteFields({
-        before: fieldBeforeName,
-        word: fieldWordName,
-        after: fieldAfterName,
-        plainWord: fieldPlainWordName,
-        definition: fieldDefinitionName,
-        sentence: fieldSentenceName,
-        image: fieldImageName,
-      }, {
+      const resolvedFieldMapping = modelFields.length > 0 ? fieldMappingForModelFields(modelFields, fieldMapping) : fieldMapping
+      await addNote(deck, model, toAnkiNoteFields(resolvedFieldMapping, {
         before: fieldBefore,
         word: fieldWord,
         after: fieldAfter,
@@ -151,24 +120,23 @@ export function AnkiModal({ apiKey, word, sentence, translation, nativeLanguage,
             </div>
             <div className="modal-field">
               <label className="modal-label">Model</label>
-              <AnkiModelSelect value={model} onChange={setModel} />
+              <input className="modal-input" value={model} readOnly />
             </div>
           </div>
 
           <div className="modal-fields-grid">
             {modelFieldsError && <span className="modal-field-hint">{modelFieldsError}</span>}
-            <AnkiField name={fieldBeforeName} onNameChange={setFieldBeforeName} fieldOptions={modelFields} fieldsLoading={modelFieldsLoading} value={fieldBefore} onValueChange={setFieldBefore} loading={fieldsLoading} />
-            <AnkiField name={fieldWordName} onNameChange={setFieldWordName} fieldOptions={modelFields} fieldsLoading={modelFieldsLoading} value={fieldWord} onValueChange={setFieldWord} loading={fieldsLoading} />
-            <AnkiField name={fieldAfterName} onNameChange={setFieldAfterName} fieldOptions={modelFields} fieldsLoading={modelFieldsLoading} value={fieldAfter} onValueChange={setFieldAfter} loading={fieldsLoading} />
-            <AnkiField name={fieldPlainWordName} onNameChange={setFieldPlainWordName} fieldOptions={modelFields} fieldsLoading={modelFieldsLoading} value={fieldPlainWord} onValueChange={setFieldPlainWord} />
-            <AnkiField name={fieldDefinitionName} onNameChange={setFieldDefinitionName} fieldOptions={modelFields} fieldsLoading={modelFieldsLoading} value={fieldDefinition} onValueChange={setFieldDefinition} loading={fieldsLoading} />
-            <AnkiField name={fieldSentenceName} onNameChange={setFieldSentenceName} fieldOptions={modelFields} fieldsLoading={modelFieldsLoading} value={fieldSentence} onValueChange={setFieldSentence} loading={fieldsLoading} />
+            <CardContentField label="Before" value={fieldBefore} onChange={setFieldBefore} loading={fieldsLoading} />
+            <CardContentField label="Word" value={fieldWord} onChange={setFieldWord} loading={fieldsLoading} />
+            <CardContentField label="After" value={fieldAfter} onChange={setFieldAfter} loading={fieldsLoading} />
+            <CardContentField label="Plain word" value={fieldPlainWord} onChange={setFieldPlainWord} />
+            <CardContentField label="Definition" value={fieldDefinition} onChange={setFieldDefinition} loading={fieldsLoading} />
+            <CardContentField label="Sentence" value={fieldSentence} onChange={setFieldSentence} loading={fieldsLoading} />
           </div>
 
           <div className="modal-image-section">
             <div className="modal-image-header">
               <div className="modal-image-header-row">
-                <AnkiFieldNameInput value={fieldImageName} onChange={setFieldImageName} options={modelFields} loading={modelFieldsLoading} />
                 <div className="img-type-toggle">
                   <button
                     className={`btn ${imgType === 'photo' ? 'btn-primary' : 'btn-ghost'}`}
@@ -229,5 +197,27 @@ export function AnkiModal({ apiKey, word, sentence, translation, nativeLanguage,
       </div>
     </div>,
     document.body,
+  )
+}
+
+interface CardContentFieldProps {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  loading?: boolean
+}
+
+function CardContentField({ label, value, onChange, loading }: CardContentFieldProps) {
+  return (
+    <label className="modal-field">
+      <span className="modal-label">{label}</span>
+      <textarea
+        className="modal-input"
+        value={loading ? 'Loading...' : value}
+        onChange={e => onChange(e.target.value)}
+        disabled={loading}
+        rows={2}
+      />
+    </label>
   )
 }

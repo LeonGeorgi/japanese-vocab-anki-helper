@@ -4,13 +4,7 @@ import { annotateSentence, defineWord, translateSentence } from './claude'
 import { toAnkiNoteFields } from './ankiNoteFields'
 import {
   ankiDeckAtom,
-  ankiFieldAfterAtom,
-  ankiFieldBeforeAtom,
-  ankiFieldDefinitionAtom,
-  ankiFieldImageAtom,
-  ankiFieldPlainWordAtom,
-  ankiFieldSentenceAtom,
-  ankiFieldWordAtom,
+  ankiFieldMappingAtom,
   ankiModelAtom,
 } from '../state/ankiAtoms'
 
@@ -38,15 +32,7 @@ export function getStoredAnkiConfig() {
   return {
     deck: store.get(ankiDeckAtom),
     model: store.get(ankiModelAtom),
-    fields: {
-      before: store.get(ankiFieldBeforeAtom),
-      word: store.get(ankiFieldWordAtom),
-      after: store.get(ankiFieldAfterAtom),
-      plainWord: store.get(ankiFieldPlainWordAtom),
-      definition: store.get(ankiFieldDefinitionAtom),
-      sentence: store.get(ankiFieldSentenceAtom),
-      image: store.get(ankiFieldImageAtom),
-    },
+    fields: store.get(ankiFieldMappingAtom),
   }
 }
 
