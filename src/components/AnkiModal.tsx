@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useAtom } from 'jotai'
 import { createPortal } from 'react-dom'
 import { addNote, storeMediaFileData } from '../api/anki'
 import { generateAnkiFields } from '../api/ankiCard'
@@ -6,12 +7,18 @@ import { toAnkiNoteFields } from '../api/ankiNoteFields'
 import { AnkiField, AnkiFieldNameInput } from './AnkiField'
 import { AnkiModelSelect } from './AnkiSelectors'
 import { useAnkiModelFields } from '../hooks/useAnkiModelFields'
-import { useLocalStorage } from '../hooks/useLocalStorage'
 import {
-  KEY_ANKI_DECK, KEY_ANKI_MODEL, KEY_ANKI_IMG_TYPE,
-  KEY_FIELD_BEFORE, KEY_FIELD_WORD, KEY_FIELD_AFTER,
-  KEY_FIELD_PLAIN_WORD, KEY_FIELD_DEFINITION, KEY_FIELD_SENTENCE, KEY_FIELD_IMAGE,
-} from '../constants'
+  ankiDeckAtom,
+  ankiFieldAfterAtom,
+  ankiFieldBeforeAtom,
+  ankiFieldDefinitionAtom,
+  ankiFieldImageAtom,
+  ankiFieldPlainWordAtom,
+  ankiFieldSentenceAtom,
+  ankiFieldWordAtom,
+  ankiImageTypeAtom,
+  ankiModelAtom,
+} from '../state/ankiAtoms'
 
 interface Props {
   apiKey: string
@@ -23,18 +30,18 @@ interface Props {
 }
 
 export function AnkiModal({ apiKey, word, sentence, translation, nativeLanguage, onClose }: Props) {
-  const [deck, setDeck] = useLocalStorage(KEY_ANKI_DECK, 'Japanese')
-  const [model, setModel] = useLocalStorage(KEY_ANKI_MODEL, 'Basic')
-  const [imgType, setImgType] = useLocalStorage<'photo' | 'clipart'>(KEY_ANKI_IMG_TYPE, 'photo')
+  const [deck, setDeck] = useAtom(ankiDeckAtom)
+  const [model, setModel] = useAtom(ankiModelAtom)
+  const [imgType, setImgType] = useAtom(ankiImageTypeAtom)
   const [pastedImage, setPastedImage] = useState<string | null>(null)
 
-  const [fieldBeforeName, setFieldBeforeName] = useLocalStorage(KEY_FIELD_BEFORE, 'Before')
-  const [fieldWordName, setFieldWordName] = useLocalStorage(KEY_FIELD_WORD, 'Word')
-  const [fieldAfterName, setFieldAfterName] = useLocalStorage(KEY_FIELD_AFTER, 'After')
-  const [fieldPlainWordName, setFieldPlainWordName] = useLocalStorage(KEY_FIELD_PLAIN_WORD, 'WordPlain')
-  const [fieldDefinitionName, setFieldDefinitionName] = useLocalStorage(KEY_FIELD_DEFINITION, 'Definition')
-  const [fieldSentenceName, setFieldSentenceName] = useLocalStorage(KEY_FIELD_SENTENCE, 'Sentence')
-  const [fieldImageName, setFieldImageName] = useLocalStorage(KEY_FIELD_IMAGE, 'Image')
+  const [fieldBeforeName, setFieldBeforeName] = useAtom(ankiFieldBeforeAtom)
+  const [fieldWordName, setFieldWordName] = useAtom(ankiFieldWordAtom)
+  const [fieldAfterName, setFieldAfterName] = useAtom(ankiFieldAfterAtom)
+  const [fieldPlainWordName, setFieldPlainWordName] = useAtom(ankiFieldPlainWordAtom)
+  const [fieldDefinitionName, setFieldDefinitionName] = useAtom(ankiFieldDefinitionAtom)
+  const [fieldSentenceName, setFieldSentenceName] = useAtom(ankiFieldSentenceAtom)
+  const [fieldImageName, setFieldImageName] = useAtom(ankiFieldImageAtom)
   const fieldNameValues = [
     fieldBeforeName,
     fieldWordName,

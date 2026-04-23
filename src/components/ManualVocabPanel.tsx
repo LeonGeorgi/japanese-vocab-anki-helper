@@ -1,9 +1,9 @@
 import { useState } from 'react'
+import { useAtom } from 'jotai'
 import type { JlptLevel } from '../types'
 import type { Notification } from '../hooks/useNotification'
-import { useManualVocabWorkflow } from '../hooks/useManualVocabWorkflow'
-import { useLocalStorage } from '../hooks/useLocalStorage'
-import { KEY_MANUAL_CONTEXT, KEY_MANUAL_KEEP_CONTEXT } from '../constants'
+import { useManualVocabulary } from './manual-vocab/useManualVocabulary'
+import { manualContextAtom, manualKeepContextAtom } from '../state/settingsAtoms'
 import { VocabTable } from './VocabTable'
 
 interface Props {
@@ -15,11 +15,11 @@ interface Props {
 
 export function ManualVocabPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: Props) {
   const [input, setInput] = useState('')
-  const [keepContext, setKeepContext] = useLocalStorage<'true' | 'false'>(KEY_MANUAL_KEEP_CONTEXT, 'false')
-  const [savedContext, setSavedContext] = useLocalStorage(KEY_MANUAL_CONTEXT, '')
+  const [keepContext, setKeepContext] = useAtom(manualKeepContextAtom)
+  const [savedContext, setSavedContext] = useAtom(manualContextAtom)
   const [context, setContext] = useState(() => keepContext === 'true' ? savedContext : '')
   const [filterEasy, setFilterEasy] = useState(false)
-  const workflow = useManualVocabWorkflow(apiKey, nativeLanguage, jlptLevel)
+  const manualVocabulary = useManualVocabulary(apiKey, nativeLanguage, jlptLevel)
   const shouldKeepContext = keepContext === 'true'
 
   function updateContext(value: string) {
@@ -44,7 +44,7 @@ export function ManualVocabPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }
       setContext('')
       setSavedContext('')
     }
-    await workflow.addInput(word, contextValue)
+    await manualVocabulary.addInput(word, contextValue)
   }
 
   return (
@@ -82,22 +82,22 @@ export function ManualVocabPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }
                 Keep context after generating
               </label>
             </div>
-            <button className="btn btn-primary" type="submit" disabled={workflow.loading || !input.trim()}>
-              {workflow.loading ? 'Checking...' : 'Generate'}
+            <button className="btn btn-primary" type="submit" disabled={manualVocabulary.loading || !input.trim()}>
+              {manualVocabulary.loading ? 'Checking...' : 'Generate'}
             </button>
           </form>
 
-          {workflow.error && <div className="status-bar error">{workflow.error}</div>}
+          {manualVocabulary.error && <div className="status-bar error">{manualVocabulary.error}</div>}
 
-          {workflow.pendingOptions && (
+          {manualVocabulary.pendingOptions && (
             <div className="manual-options">
               <div className="manual-options-title">Which one did you mean?</div>
               <div className="manual-options-list">
-                {workflow.pendingOptions.map(option => (
+                {manualVocabulary.pendingOptions.map(option => (
                   <button
                     key={`${option.word}:${option.meaning}`}
                     className="manual-option"
-                    onClick={() => void workflow.addResolvedOption(option)}
+                    onClick={() => void manualVocabulary.addResolvedOption(option)}
                   >
                     <span className="manual-option-word">{option.word}</span>
                     <span className="manual-option-meaning">{option.meaning}</span>
@@ -109,20 +109,20 @@ export function ManualVocabPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }
         </div>
       </div>
 
-      {workflow.words.length > 0 && (
+      {manualVocabulary.words.length > 0 && (
         <VocabTable
           title="Manual Vocabulary"
-          words={workflow.words}
-          examples={workflow.examples}
+          words={manualVocabulary.words}
+          examples={manualVocabulary.examples}
           apiKey={apiKey}
           jlptLevel={jlptLevel}
           filterEasy={filterEasy}
           nativeLanguage={nativeLanguage}
           onFilterChange={setFilterEasy}
-          onGenerate={workflow.generate}
-          onTranslate={workflow.translate}
-          onSplit={workflow.split}
-          onConvertToKanji={workflow.convertToKanji}
+          onGenerate={manualVocabulary.generate}
+          onTranslate={manualVocabulary.translate}
+          onSplit={manualVocabulary.split}
+          onConvertToKanji={manualVocabulary.convertToKanji}
           onNotify={onNotify}
         />
       )}

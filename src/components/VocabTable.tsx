@@ -1,8 +1,9 @@
 import { useMemo } from 'react'
+import { useAtom } from 'jotai'
 import type { Word, Example, JlptLevel, GenerateOptions } from '../types'
-import { EASY_LEVELS, KEY_ANKI_LOOKUP_DECK } from '../constants'
-import { useLocalStorage } from '../hooks/useLocalStorage'
-import { useAnkiStatus } from '../hooks/useAnkiStatus'
+import { EASY_LEVELS } from '../constants'
+import { ankiLookupDeckAtom } from '../state/ankiAtoms'
+import { useAnkiStatus } from './useAnkiStatus'
 import { VocabRow } from './VocabRow'
 
 type Notification = { type: 'success' | 'error'; message: string }
@@ -25,7 +26,7 @@ interface Props {
 
 export function VocabTable({ title = '3 — Vocabulary', words, examples, apiKey, jlptLevel, filterEasy, nativeLanguage, onFilterChange, onGenerate, onTranslate, onSplit, onConvertToKanji, onNotify }: Props) {
   const easyLevels = EASY_LEVELS[jlptLevel]
-  const [lookupDeck, setLookupDeck] = useLocalStorage(KEY_ANKI_LOOKUP_DECK, 'Japanese')
+  const [lookupDeck, setLookupDeck] = useAtom(ankiLookupDeckAtom)
   const { inAnki, refresh } = useAnkiStatus(words)
 
   const displayedWords = useMemo(() => {

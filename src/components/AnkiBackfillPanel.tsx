@@ -1,14 +1,19 @@
 import { useMemo } from 'react'
+import { useAtom } from 'jotai'
 import type { AnkiFieldNames } from '../api/ankiCard'
 import { AnkiFieldSelect, AnkiModelSelect } from './AnkiSelectors'
-import { useAnkiBackfill } from '../hooks/useAnkiBackfill'
+import { useAnkiBackfill } from './anki-backfill/useAnkiBackfill'
 import { useAnkiModelFields } from '../hooks/useAnkiModelFields'
-import { useLocalStorage } from '../hooks/useLocalStorage'
 import {
-  KEY_ANKI_BACKFILL_DECK, KEY_ANKI_MODEL,
-  KEY_FIELD_BEFORE, KEY_FIELD_WORD, KEY_FIELD_AFTER,
-  KEY_FIELD_PLAIN_WORD, KEY_FIELD_DEFINITION, KEY_FIELD_SENTENCE,
-} from '../constants'
+  ankiBackfillDeckAtom,
+  ankiFieldAfterAtom,
+  ankiFieldBeforeAtom,
+  ankiFieldDefinitionAtom,
+  ankiFieldPlainWordAtom,
+  ankiFieldSentenceAtom,
+  ankiFieldWordAtom,
+  ankiModelAtom,
+} from '../state/ankiAtoms'
 
 type Notification = { type: 'success' | 'error'; message: string }
 
@@ -19,14 +24,14 @@ interface Props {
 }
 
 export function AnkiBackfillPanel({ apiKey, nativeLanguage, onNotify }: Props) {
-  const [deck, setDeck] = useLocalStorage(KEY_ANKI_BACKFILL_DECK, 'Japanese')
-  const [model, setModel] = useLocalStorage(KEY_ANKI_MODEL, 'Basic')
-  const [fieldBeforeName, setFieldBeforeName] = useLocalStorage(KEY_FIELD_BEFORE, 'Before')
-  const [fieldWordName, setFieldWordName] = useLocalStorage(KEY_FIELD_WORD, 'Word')
-  const [fieldAfterName, setFieldAfterName] = useLocalStorage(KEY_FIELD_AFTER, 'After')
-  const [fieldPlainWordName, setFieldPlainWordName] = useLocalStorage(KEY_FIELD_PLAIN_WORD, 'WordPlain')
-  const [fieldDefinitionName, setFieldDefinitionName] = useLocalStorage(KEY_FIELD_DEFINITION, 'Definition')
-  const [fieldSentenceName, setFieldSentenceName] = useLocalStorage(KEY_FIELD_SENTENCE, 'Sentence')
+  const [deck, setDeck] = useAtom(ankiBackfillDeckAtom)
+  const [model, setModel] = useAtom(ankiModelAtom)
+  const [fieldBeforeName, setFieldBeforeName] = useAtom(ankiFieldBeforeAtom)
+  const [fieldWordName, setFieldWordName] = useAtom(ankiFieldWordAtom)
+  const [fieldAfterName, setFieldAfterName] = useAtom(ankiFieldAfterAtom)
+  const [fieldPlainWordName, setFieldPlainWordName] = useAtom(ankiFieldPlainWordAtom)
+  const [fieldDefinitionName, setFieldDefinitionName] = useAtom(ankiFieldDefinitionAtom)
+  const [fieldSentenceName, setFieldSentenceName] = useAtom(ankiFieldSentenceAtom)
   const fieldNameValues = [
     fieldBeforeName,
     fieldWordName,

@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useAtomValue } from 'jotai'
 import type { Word } from '../types'
 import { findNotes } from '../api/anki'
-import { useLocalStorage } from './useLocalStorage'
-import { KEY_ANKI_LOOKUP_DECK, KEY_FIELD_PLAIN_WORD } from '../constants'
+import { ankiFieldPlainWordAtom, ankiLookupDeckAtom } from '../state/ankiAtoms'
 
 export function useAnkiStatus(words: Word[]) {
-  const [deck] = useLocalStorage(KEY_ANKI_LOOKUP_DECK, 'Japanese')
-  const [fieldName] = useLocalStorage(KEY_FIELD_PLAIN_WORD, 'WordPlain')
+  const deck = useAtomValue(ankiLookupDeckAtom)
+  const fieldName = useAtomValue(ankiFieldPlainWordAtom)
   const [inAnki, setInAnki] = useState<Set<string>>(new Set())
 
   const refresh = useCallback(async () => {

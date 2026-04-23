@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Example, GenerateOptions, Word } from '../types'
 import { quickAddAnkiCard } from '../api/ankiCard'
-import type { Notification } from './useNotification'
+import type { Notification } from '../hooks/useNotification'
 
 interface UseVocabRowActionsArgs {
   word: Word

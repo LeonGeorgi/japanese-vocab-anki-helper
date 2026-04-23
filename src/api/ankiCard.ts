@@ -1,11 +1,18 @@
+import { getDefaultStore } from 'jotai'
 import { addNote } from './anki'
 import { annotateSentence, defineWord, translateSentence } from './claude'
 import { toAnkiNoteFields } from './ankiNoteFields'
 import {
-  KEY_ANKI_DECK, KEY_ANKI_MODEL,
-  KEY_FIELD_BEFORE, KEY_FIELD_WORD, KEY_FIELD_AFTER,
-  KEY_FIELD_PLAIN_WORD, KEY_FIELD_DEFINITION, KEY_FIELD_SENTENCE, KEY_FIELD_IMAGE,
-} from '../constants'
+  ankiDeckAtom,
+  ankiFieldAfterAtom,
+  ankiFieldBeforeAtom,
+  ankiFieldDefinitionAtom,
+  ankiFieldImageAtom,
+  ankiFieldPlainWordAtom,
+  ankiFieldSentenceAtom,
+  ankiFieldWordAtom,
+  ankiModelAtom,
+} from '../state/ankiAtoms'
 
 export interface GeneratedAnkiFields {
   before: string
@@ -26,22 +33,19 @@ export interface AnkiFieldNames {
   image: string
 }
 
-function storedString(key: string, defaultValue: string) {
-  return localStorage.getItem(key) ?? defaultValue
-}
-
 export function getStoredAnkiConfig() {
+  const store = getDefaultStore()
   return {
-    deck: storedString(KEY_ANKI_DECK, 'Japanese'),
-    model: storedString(KEY_ANKI_MODEL, 'Basic'),
+    deck: store.get(ankiDeckAtom),
+    model: store.get(ankiModelAtom),
     fields: {
-      before: storedString(KEY_FIELD_BEFORE, 'Before'),
-      word: storedString(KEY_FIELD_WORD, 'Word'),
-      after: storedString(KEY_FIELD_AFTER, 'After'),
-      plainWord: storedString(KEY_FIELD_PLAIN_WORD, 'WordPlain'),
-      definition: storedString(KEY_FIELD_DEFINITION, 'Definition'),
-      sentence: storedString(KEY_FIELD_SENTENCE, 'Sentence'),
-      image: storedString(KEY_FIELD_IMAGE, 'Image'),
+      before: store.get(ankiFieldBeforeAtom),
+      word: store.get(ankiFieldWordAtom),
+      after: store.get(ankiFieldAfterAtom),
+      plainWord: store.get(ankiFieldPlainWordAtom),
+      definition: store.get(ankiFieldDefinitionAtom),
+      sentence: store.get(ankiFieldSentenceAtom),
+      image: store.get(ankiFieldImageAtom),
     },
   }
 }

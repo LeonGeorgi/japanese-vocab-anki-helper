@@ -1,6 +1,6 @@
 import type { Word, Example, GenerateOptions } from '../types'
 import type { Notification } from '../hooks/useNotification'
-import { useVocabRowActions } from '../hooks/useVocabRowActions'
+import { useVocabRowActions } from './useVocabRowActions'
 import { AnkiModal } from './AnkiModal'
 
 interface Props {
