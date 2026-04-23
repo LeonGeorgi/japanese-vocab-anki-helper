@@ -25,7 +25,7 @@ interface Props {
   onNotify: (notification: Notification) => void
 }
 
-export function VocabTable({ title = '3 — Vocabulary', words, examples, apiKey, jlptLevel, filterEasy, nativeLanguage, onFilterChange, onGenerate, onTranslate, onSplit, onConvertToKanji, onNotify }: Props) {
+export function VocabTable({ title = 'Vocabulary', words, examples, apiKey, jlptLevel, filterEasy, nativeLanguage, onFilterChange, onGenerate, onTranslate, onSplit, onConvertToKanji, onNotify }: Props) {
   const easyLevels = EASY_LEVELS[jlptLevel]
   const [lookupDeck, setLookupDeck] = useAtom(ankiLookupDeckAtom)
   const { inAnki, refresh } = useAnkiStatus(words)

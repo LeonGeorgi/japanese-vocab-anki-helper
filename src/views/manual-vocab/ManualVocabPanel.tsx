@@ -51,7 +51,6 @@ export function ManualVocabPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }
   return (
     <>
       <div className="step">
-        <div className="step-label">Manual Vocabulary</div>
         <div className={styles.section}>
           <form
             className={styles.form}

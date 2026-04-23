@@ -1,6 +1,5 @@
 import type { JlptLevel } from '../../types'
 import type { Notification } from '../../hooks/useNotification'
-import { ImageStep } from './ImageStep'
 import { TranscriptionStep } from './TranscriptionStep'
 import { VocabTable } from '../../primitives/vocab/VocabTable'
 import { useTextVocabulary } from './useTextVocabulary'
@@ -22,18 +21,15 @@ export function TextVocabPanel({
 
   return (
     <>
-      <ImageStep
-        apiKey={apiKey}
-        hasTranscription={!!textVocabulary.transcription}
-        transcribing={textVocabulary.transcribeLoading}
-        error={textVocabulary.transcribeError}
-        onTranscribe={textVocabulary.transcribe}
-      />
       <TranscriptionStep
+        apiKey={apiKey}
         transcription={textVocabulary.transcription}
+        transcribing={textVocabulary.transcribeLoading}
         extracting={textVocabulary.wordsLoading}
         hasWords={textVocabulary.words.length > 0}
+        transcribeError={textVocabulary.transcribeError}
         error={textVocabulary.wordsError}
+        onTranscribe={textVocabulary.transcribe}
         onChange={textVocabulary.updateTranscription}
         onExtract={textVocabulary.extract}
       />
