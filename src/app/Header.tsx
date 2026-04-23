@@ -1,14 +1,7 @@
-import { useState } from 'react'
-import { JLPT_LEVELS } from '../constants'
 import type { AnkiConnectionState } from '../primitives/anki/useAnkiConnection'
-import type { JlptLevel } from '../types'
 import styles from './Header.module.css'
 
 interface Props {
-  jlptLevel: JlptLevel
-  onLevelChange: (level: JlptLevel) => void
-  nativeLanguage: string
-  onNativeLanguageChange: (lang: string) => void
   ankiConnection: {
     status: AnkiConnectionState
     version: number | null
@@ -20,18 +13,9 @@ interface Props {
 }
 
 export function Header({
-  jlptLevel, onLevelChange,
-  nativeLanguage, onNativeLanguageChange,
   ankiConnection,
   showReset, onReset,
 }: Props) {
-  const [draft, setDraft] = useState(nativeLanguage)
-
-  function commit(value: string) {
-    const trimmed = value.trim()
-    if (trimmed !== nativeLanguage) onNativeLanguageChange(trimmed)
-  }
-
   const ankiLabel = ankiConnection.status === 'connected'
     ? 'Connected'
     : ankiConnection.status === 'checking'
@@ -63,31 +47,6 @@ export function Header({
             >
               Retry
             </button>
-          </div>
-          <div className={styles.levelSelector}>
-            <span className={styles.levelLabel}>My level</span>
-            <div className={styles.levelButtons}>
-              {JLPT_LEVELS.map(level => (
-                <button
-                  key={level}
-                  className={`${styles.levelButton} ${jlptLevel === level ? styles.activeLevelButton : ''}`}
-                  onClick={() => onLevelChange(level)}
-                >
-                  {level}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className={styles.levelSelector}>
-            <span className={styles.levelLabel}>Native language</span>
-            <input
-              className={styles.languageInput}
-              type="text"
-              placeholder="e.g. English"
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              onBlur={e => commit(e.target.value)}
-            />
           </div>
           {showReset && (
             <button className={styles.resetButton} onClick={onReset} title="Clear all data">

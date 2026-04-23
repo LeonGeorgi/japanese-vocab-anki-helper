@@ -103,68 +103,6 @@
   cursor: not-allowed;
 }
 
-.levelSelector {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.levelLabel {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-.levelButtons {
-  display: flex;
-  gap: 4px;
-}
-
-.levelButton {
-  height: 30px;
-  padding: 0 9px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
-}
-
-.levelButton:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.activeLevelButton {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: white;
-}
-
-.languageInput {
-  height: 30px;
-  padding: 0 9px;
-  border-radius: 6px;
-  font-size: 13px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  outline: none;
-  font-family: inherit;
-  width: 110px;
-  transition: border-color 0.15s;
-}
-
-.languageInput:focus {
-  border-color: var(--accent);
-}
-
 .resetButton {
   height: 30px;
   padding: 0 10px;
