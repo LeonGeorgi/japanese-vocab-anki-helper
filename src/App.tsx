@@ -2,18 +2,18 @@ import { lazy, Suspense } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { Navigate, NavLink, Route, Routes } from 'react-router'
 import { useNotification } from './hooks/useNotification'
-import { useAnkiConnection } from './hooks/useAnkiConnection'
+import { useAnkiConnection } from './primitives/anki/useAnkiConnection'
 import { isAnkiBackfillEnabled } from './featureFlags'
 import { apiKeyAtom, jlptLevelAtom, nativeLanguageAtom } from './state/settingsAtoms'
 import { resetTextVocabAtom, textVocabSessionAtom } from './state/vocabSessionAtoms'
-import { Header } from './components/Header'
-import { ApiKeyPanel } from './components/ApiKeyPanel'
-import { TextVocabPanel } from './components/TextVocabPanel'
-import { ManualVocabPanel } from './components/ManualVocabPanel'
-import './App.css'
+import { Header } from './app/Header'
+import { ApiKeyPanel } from './primitives/settings/ApiKeyPanel'
+import { TextVocabPanel } from './views/text-vocab/TextVocabPanel'
+import { ManualVocabPanel } from './views/manual-vocab/ManualVocabPanel'
+import styles from './app/App.module.css'
 
 const AnkiBackfillPanel = isAnkiBackfillEnabled
-  ? lazy(() => import('./components/AnkiBackfillPanel').then(module => ({ default: module.AnkiBackfillPanel })))
+  ? lazy(() => import('./views/anki-backfill/AnkiBackfillPanel').then(module => ({ default: module.AnkiBackfillPanel })))
   : null
 
 export default function App() {
@@ -29,9 +29,9 @@ export default function App() {
   const hasData = !!textVocabSession.transcription || textVocabSession.words.length > 0
 
   return (
-    <div className="app">
+    <div className={styles.app}>
       {notification && (
-        <div className={`site-notification ${notification.type}`}>
+        <div className={`${styles.siteNotification} ${notification.type === 'success' ? styles.success : styles.error}`}>
           {notification.message}
         </div>
       )}
@@ -44,15 +44,15 @@ export default function App() {
         showReset={hasData}
         onReset={resetTextVocab}
       />
-      <div className="app-tabs">
-        <NavLink to="/" end className={({ isActive }) => `app-tab ${isActive ? 'active' : ''}`}>
+      <div className={styles.tabs}>
+        <NavLink to="/" end className={({ isActive }) => `${styles.tab} ${isActive ? styles.activeTab : ''}`}>
           Text Vocab
         </NavLink>
-        <NavLink to="/manual-vocab" className={({ isActive }) => `app-tab ${isActive ? 'active' : ''}`}>
+        <NavLink to="/manual-vocab" className={({ isActive }) => `${styles.tab} ${isActive ? styles.activeTab : ''}`}>
           Manual Vocab
         </NavLink>
         {isAnkiBackfillEnabled && (
-          <NavLink to="/anki-backfill" className={({ isActive }) => `app-tab ${isActive ? 'active' : ''}`}>
+          <NavLink to="/anki-backfill" className={({ isActive }) => `${styles.tab} ${isActive ? styles.activeTab : ''}`}>
             Anki Backfill
           </NavLink>
         )}

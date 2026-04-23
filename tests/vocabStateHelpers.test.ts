@@ -4,7 +4,7 @@ import {
   renameRecordKey,
   replaceWord,
   replaceWordWithComponents,
-} from '../src/hooks/vocabStateHelpers'
+} from '../src/primitives/vocab/hooks/vocabStateHelpers'
 
 test('addUniqueWord adds missing words and keeps existing words unchanged', () => {
   const words = [{ word: '勉強', level: null }]

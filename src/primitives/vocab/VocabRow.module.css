@@ -1,0 +1,238 @@
+.row {
+  border-top: 1px solid var(--border);
+  transition: opacity 0.2s;
+}
+
+.row:first-child {
+  border-top: none;
+}
+
+.inAnki {
+  opacity: 0.4;
+  background: #e5e7eb;
+}
+
+.inAnki:hover {
+  opacity: 1;
+}
+
+.wordCell {
+  width: 30%;
+  padding: 12px 16px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.wordMainRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.exampleCell {
+  padding: 12px 16px 12px 0;
+  vertical-align: middle;
+}
+
+.exampleContent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.exampleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.exampleTranslation {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.wordText {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.wordLevel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.ankiBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  font-size: 10px;
+  font-weight: 700;
+  color: transparent;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.inAnkiBadge {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.generateButton {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.generateButton:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.exampleSentence {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.iconButton {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.iconButton:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.iconButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.iconButtonActive {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+.kanjiButton {
+  margin-left: 2px;
+  font-size: 13px;
+}
+
+.kanjiSpinner {
+  width: 13px;
+  height: 13px;
+}
+
+.wordError {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--danger);
+  white-space: normal;
+}
+
+.menu {
+  position: relative;
+}
+
+.menuDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  min-width: 150px;
+}
+
+.menuItem {
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.menuItem:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.menuItem:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.menuDivider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.feedbackRow {
+  display: flex;
+  gap: 4px;
+}
+
+.feedbackInput {
+  width: 180px;
+  padding: 4px 8px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  outline: none;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+}
+
+.feedbackInput:focus {
+  border-color: var(--accent);
+}
+
+.exampleSpinner {
+  display: block;
+  color: var(--accent);
+}
+
+.exampleError {
+  font-size: 13px;
+  color: var(--danger);
+}

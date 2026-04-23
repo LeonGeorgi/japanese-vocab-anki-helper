@@ -1,0 +1,20 @@
+.box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.text {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+  display: block;
+}

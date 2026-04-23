@@ -1,0 +1,199 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
+  padding-top: 14px;
+  padding-bottom: 12px;
+  margin-top: -14px;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.75);
+}
+
+.brand {
+  min-width: 126px;
+}
+
+.brand h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.15;
+}
+
+.brand p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 1px;
+  white-space: nowrap;
+}
+
+.right {
+  display: flex;
+  min-width: 0;
+  align-items: flex-end;
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.ankiConnection {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 5px 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ankiConnectionDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #d1d5db;
+}
+
+.connected {
+  background: #22c55e;
+}
+
+.checking {
+  background: #f59e0b;
+}
+
+.offline {
+  background: var(--danger);
+}
+
+.ankiRetryButton {
+  height: 22px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.ankiRetryButton:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.ankiRetryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.levelSelector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.levelLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.levelButtons {
+  display: flex;
+  gap: 4px;
+}
+
+.levelButton {
+  height: 30px;
+  padding: 0 9px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.levelButton:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.activeLevelButton {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.languageInput {
+  height: 30px;
+  padding: 0 9px;
+  border-radius: 6px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  font-family: inherit;
+  width: 110px;
+  transition: border-color 0.15s;
+}
+
+.languageInput:focus {
+  border-color: var(--accent);
+}
+
+.resetButton {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.resetButton:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+@media (max-width: 680px) {
+  .header {
+    align-items: flex-start;
+  }
+
+  .right {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .controls {
+    justify-content: flex-start;
+  }
+}
