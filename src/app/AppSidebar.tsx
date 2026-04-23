@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { JLPT_LEVELS } from '../constants'
 import type { TextVocabHistoryEntry } from '../state/vocabSessionAtoms'
 import type { JlptLevel } from '../types'
@@ -9,11 +9,9 @@ interface Props {
   activeTextSessionId: string
   collapsed: boolean
   onCollapsedChange: (collapsed: boolean) => void
-  onCreateTextSession: () => void
+  onOpenSettings: () => void
   onRestoreTextSession: (id: string) => void
   onDeleteTextSession: (id: string) => void
-  apiKey: string
-  onApiKeyChange: (key: string) => void
   jlptLevel: JlptLevel
   onLevelChange: (level: JlptLevel) => void
   nativeLanguage: string
@@ -32,24 +30,19 @@ export function AppSidebar({
   activeTextSessionId,
   collapsed,
   onCollapsedChange,
-  onCreateTextSession,
+  onOpenSettings,
   onRestoreTextSession,
   onDeleteTextSession,
-  apiKey,
-  onApiKeyChange,
   jlptLevel,
   onLevelChange,
   nativeLanguage,
   onNativeLanguageChange,
 }: Props) {
-  const [apiKeyDraft, setApiKeyDraft] = useState('')
   const [nativeLanguageDraft, setNativeLanguageDraft] = useState(nativeLanguage)
 
-  function saveApiKey() {
-    if (!apiKeyDraft) return
-    onApiKeyChange(apiKeyDraft)
-    setApiKeyDraft('')
-  }
+  useEffect(() => {
+    setNativeLanguageDraft(nativeLanguage)
+  }, [nativeLanguage])
 
   function commitNativeLanguage(value: string) {
     const trimmed = value.trim()
@@ -59,64 +52,29 @@ export function AppSidebar({
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
       <div className={styles.header}>
-        <div className={styles.titleRow}>
-          {!collapsed && (
-            <>
-              <div className={styles.title}>Sessions</div>
-              <div className={styles.count}>{entries.length}</div>
-            </>
-          )}
+        <div className={styles.toolbar}>
           <button
             type="button"
-            className={styles.collapseButton}
+            className={styles.iconButton}
+            title="Settings"
+            onClick={onOpenSettings}
+          >
+            ⚙
+          </button>
+          <button
+            type="button"
+            className={styles.iconButton}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             onClick={() => onCollapsedChange(!collapsed)}
           >
             {collapsed ? '›' : '‹'}
           </button>
         </div>
-        {!collapsed && (
-          <button
-            type="button"
-            className={`btn btn-primary ${styles.saveButton}`}
-            onClick={onCreateTextSession}
-          >
-            New session
-          </button>
-        )}
       </div>
 
       {!collapsed && (
         <div className={styles.content}>
-          <section className={styles.settings}>
-            <div className={styles.sectionTitle}>Settings</div>
-
-            <label className={styles.field}>
-              <span className={styles.fieldLabel}>Anthropic API key</span>
-              <div className={styles.apiKeyStatus}>
-                <span className={`${styles.statusDot} ${apiKey ? styles.statusSet : ''}`} />
-                {apiKey ? 'Set' : 'Not set'}
-              </div>
-              <form
-                className={styles.apiKeyForm}
-                onSubmit={e => {
-                  e.preventDefault()
-                  saveApiKey()
-                }}
-              >
-                <input
-                  className={styles.input}
-                  type="password"
-                  placeholder="sk-ant-..."
-                  value={apiKeyDraft}
-                  onChange={e => setApiKeyDraft(e.target.value)}
-                />
-                <button className="btn btn-primary" type="submit" disabled={!apiKeyDraft}>
-                  Save
-                </button>
-              </form>
-            </label>
-
+          <section className={styles.quickSettings}>
             <label className={styles.field}>
               <span className={styles.fieldLabel}>Native language</span>
               <input
@@ -146,10 +104,7 @@ export function AppSidebar({
             </div>
           </section>
 
-          <div className={styles.sectionHeader}>
-            <div className={styles.sectionTitle}>History</div>
-            <div className={styles.count}>{entries.length}</div>
-          </div>
+          <div className={styles.sectionTitle}>History</div>
           {entries.length === 0 ? (
             <div className={styles.empty}>No saved sessions yet.</div>
           ) : (

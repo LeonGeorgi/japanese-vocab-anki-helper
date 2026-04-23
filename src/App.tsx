@@ -6,7 +6,6 @@ import { useAnkiConnection } from './primitives/anki/useAnkiConnection'
 import { isAnkiBackfillEnabled } from './featureFlags'
 import { apiKeyAtom, jlptLevelAtom, nativeLanguageAtom } from './state/settingsAtoms'
 import {
-  createTextVocabSessionAtom,
   deleteTextVocabHistoryEntryAtom,
   resetTextVocabAtom,
   restoreTextVocabHistoryAtom,
@@ -15,6 +14,7 @@ import {
 } from './state/vocabSessionAtoms'
 import { Header } from './app/Header'
 import { AppSidebar } from './app/AppSidebar'
+import { AppSettingsDialog } from './app/AppSettingsDialog'
 import { TextVocabPanel } from './views/text-vocab/TextVocabPanel'
 import { ManualVocabPanel } from './views/manual-vocab/ManualVocabPanel'
 import styles from './app/App.module.css'
@@ -28,6 +28,7 @@ export default function App() {
   const [jlptLevel, setJlptLevel] = useAtom(jlptLevelAtom)
   const [nativeLanguage, setNativeLanguage] = useAtom(nativeLanguageAtom)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const navigate = useNavigate()
   const { notification, notify } = useNotification()
@@ -35,16 +36,10 @@ export default function App() {
   const textVocabSession = useAtomValue(textVocabSessionAtom)
   const textVocabHistory = useAtomValue(textVocabHistoryAtom)
   const resetTextVocab = useSetAtom(resetTextVocabAtom)
-  const createTextVocabSession = useSetAtom(createTextVocabSessionAtom)
   const restoreTextVocabHistory = useSetAtom(restoreTextVocabHistoryAtom)
   const deleteTextVocabHistoryEntry = useSetAtom(deleteTextVocabHistoryEntryAtom)
 
   const hasData = !!textVocabSession.transcription || textVocabSession.words.length > 0
-
-  function handleCreateTextSession() {
-    createTextVocabSession()
-    navigate('/')
-  }
 
   function handleRestoreTextSession(id: string) {
     restoreTextVocabHistory(id)
@@ -64,11 +59,9 @@ export default function App() {
         activeTextSessionId={textVocabSession.id}
         collapsed={sidebarCollapsed}
         onCollapsedChange={setSidebarCollapsed}
-        onCreateTextSession={handleCreateTextSession}
+        onOpenSettings={() => setSettingsOpen(true)}
         onRestoreTextSession={handleRestoreTextSession}
         onDeleteTextSession={deleteTextVocabHistoryEntry}
-        apiKey={apiKey}
-        onApiKeyChange={setApiKey}
         jlptLevel={jlptLevel}
         onLevelChange={setJlptLevel}
         nativeLanguage={nativeLanguage}
@@ -133,6 +126,13 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      {settingsOpen && (
+        <AppSettingsDialog
+          apiKey={apiKey}
+          onApiKeyChange={setApiKey}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </div>
   )
 }

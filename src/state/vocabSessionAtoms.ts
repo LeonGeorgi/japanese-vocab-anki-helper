@@ -71,13 +71,6 @@ export const textVocabSessionAtom = atom(
   },
 )
 
-export const createTextVocabSessionAtom = atom(null, (get, set) => {
-  const entry = createTextVocabHistoryEntry(get(textVocabSessionAtom))
-  if (entry) set(textVocabHistoryAtom, historyWithEntry(get(textVocabHistoryAtom), entry))
-  set(storedTextVocabSessionAtom, createEmptyTextVocabSession())
-  set(textExampleStatusAtom, {})
-})
-
 export const restoreTextVocabHistoryAtom = atom(null, (get, set, id: string) => {
   const entry = get(textVocabHistoryAtom).find(item => item.id === id)
   if (!entry) return
