@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { useState } from 'react'
-import { extractWords } from '../../api/claude'
+import { extractWords } from '../../api/llm'
 import type { Word } from '../../types'
 
 interface UseWordExtractionArgs {

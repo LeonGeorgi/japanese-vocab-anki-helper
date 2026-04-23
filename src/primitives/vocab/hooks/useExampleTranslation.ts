@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { translateSentence } from '../../../api/claude'
+import { translateSentence } from '../../../api/llm'
 import type { Example } from '../../../types'
 
 interface UseExampleTranslationArgs {

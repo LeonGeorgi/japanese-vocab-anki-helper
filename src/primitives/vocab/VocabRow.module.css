@@ -52,6 +52,20 @@
   line-height: 1.4;
 }
 
+.translationSkeleton {
+  height: 12px;
+  width: min(360px, 62%);
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(203, 213, 225, 0.35) 0%,
+    rgba(148, 163, 184, 0.26) 50%,
+    rgba(203, 213, 225, 0.35) 100%
+  );
+  background-size: 220% 100%;
+  animation: translationSkeletonPulse 1.2s ease-in-out infinite;
+}
+
 .wordText {
   font-size: 15px;
   font-weight: 500;
@@ -235,4 +249,13 @@
 .exampleError {
   font-size: 13px;
   color: var(--danger);
+}
+
+@keyframes translationSkeletonPulse {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }

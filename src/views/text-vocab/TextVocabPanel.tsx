@@ -33,10 +33,11 @@ export function TextVocabPanel({
         onChange={textVocabulary.updateTranscription}
         onExtract={textVocabulary.extract}
       />
-      {textVocabulary.words.length > 0 && (
+      {(textVocabulary.words.length > 0 || textVocabulary.wordsLoading) && (
         <VocabTable
           words={textVocabulary.words}
           examples={textVocabulary.examples}
+          loading={textVocabulary.wordsLoading}
           apiKey={apiKey}
           jlptLevel={jlptLevel}
           filterEasy={textVocabulary.filterEasy}

@@ -181,7 +181,10 @@ export function VocabRow({ word, example, apiKey, nativeLanguage, inAnki, onGene
                     </button>
                   </form>
                 )}
-                {example.translation && (
+                {example.translationLoading && (
+                  <div className={styles.translationSkeleton} aria-hidden="true" />
+                )}
+                {!example.translationLoading && example.translation && (
                   <div className={styles.exampleTranslation}>{example.translation}</div>
                 )}
               </div>

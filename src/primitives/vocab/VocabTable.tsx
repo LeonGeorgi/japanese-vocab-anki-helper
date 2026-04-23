@@ -11,6 +11,7 @@ interface Props {
   title?: string
   words: Word[]
   examples: Record<string, Example>
+  loading?: boolean
   apiKey: string
   jlptLevel: JlptLevel
   filterEasy: boolean
@@ -23,7 +24,7 @@ interface Props {
   onNotify: (notification: Notification) => void
 }
 
-export function VocabTable({ title = 'Vocabulary', words, examples, apiKey, jlptLevel, filterEasy, nativeLanguage, onFilterChange, onGenerate, onTranslate, onSplit, onConvertToKanji, onNotify }: Props) {
+export function VocabTable({ title = 'Vocabulary', words, examples, loading = false, apiKey, jlptLevel, filterEasy, nativeLanguage, onFilterChange, onGenerate, onTranslate, onSplit, onConvertToKanji, onNotify }: Props) {
   const easyLevels = EASY_LEVELS[jlptLevel]
   const { inAnki, refresh } = useAnkiStatus(words)
 
@@ -40,7 +41,9 @@ export function VocabTable({ title = 'Vocabulary', words, examples, apiKey, jlpt
       <div className={styles.section}>
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <span className={styles.count}>{displayedWords.length} words</span>
+            <span className={styles.count}>
+              {loading ? 'Extracting…' : `${displayedWords.length} words`}
+            </span>
             {hiddenCount > 0 && <span className={styles.hiddenCount}>{hiddenCount} hidden</span>}
           </div>
           <div className={styles.headerRight}>
@@ -58,6 +61,17 @@ export function VocabTable({ title = 'Vocabulary', words, examples, apiKey, jlpt
         </div>
         <table className={styles.table}>
           <tbody>
+            {loading && displayedWords.length === 0 && Array.from({ length: 4 }, (_, index) => (
+              <tr key={`skeleton-${index}`} className={styles.skeletonRow}>
+                <td className={styles.skeletonWordCell}>
+                  <div className={styles.skeletonWord} aria-hidden="true" />
+                </td>
+                <td className={styles.skeletonExampleCell}>
+                  <div className={styles.skeletonLine} aria-hidden="true" />
+                  <div className={styles.skeletonLineShort} aria-hidden="true" />
+                </td>
+              </tr>
+            ))}
             {displayedWords.map((word, i) => (
               <VocabRow
                 key={i}

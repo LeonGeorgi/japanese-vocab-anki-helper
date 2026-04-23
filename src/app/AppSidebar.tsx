@@ -265,8 +265,16 @@ export function AppSidebar({
         </div>
       )}
 
-      {showAnkiBackfill && (
-        <div className={styles.footer}>
+      <div className={styles.footer}>
+        <NavLink
+          to="/stats"
+          className={({ isActive }) => `${styles.footerLink} ${isActive ? styles.activeFooterLink : ''}`}
+          title="Usage stats"
+        >
+          <span className={styles.footerIcon}>Σ</span>
+          {!collapsed && <span>Usage stats</span>}
+        </NavLink>
+        {showAnkiBackfill && (
           <NavLink
             to="/anki-backfill"
             className={({ isActive }) => `${styles.footerLink} ${isActive ? styles.activeFooterLink : ''}`}
@@ -275,8 +283,8 @@ export function AppSidebar({
             <span className={styles.footerIcon}>A</span>
             {!collapsed && <span>Anki Backfill</span>}
           </NavLink>
-        </div>
-      )}
+        )}
+      </div>
     </aside>
   )
 }

@@ -2,7 +2,7 @@ import { findNotesWithEmptyField, getNotesInfo, updateNoteFields } from './anki'
 import type { AnkiFieldNames } from './ankiCard'
 import type { BackfillNote } from './ankiBackfill'
 import { toBackfillNote } from './ankiBackfill'
-import { defineWord, translateSentence } from './claude'
+import { defineWord, translateSentence } from './llm'
 
 export async function loadBackfillCandidates(
   deck: string,

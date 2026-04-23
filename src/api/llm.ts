@@ -1,4 +1,7 @@
+import { getDefaultStore } from 'jotai'
 import type { GenerateOptions, JlptLevel, ManualVocabResolution, Word } from '../types'
+import { createLlmClient, type LlmFeature, type LlmModelInfo } from '../llm'
+import { llmProviderAtom, llmTextModelAtom, llmVisionModelAtom } from '../state/settingsAtoms'
 import {
   OCR_SYSTEM_PROMPT,
   OCR_USER_PROMPT,
@@ -12,29 +15,28 @@ import {
   resolveManualVocabPrompt,
   splitWordPrompt,
   translateSentencePrompt,
-} from './claudePrompts'
-import { parseManualVocabResolution, parseWordLines, stripWrappingJapaneseQuotes } from './claudeParsers'
+} from './llmPrompts'
+import { parseManualVocabResolution, parseWordLines, stripWrappingJapaneseQuotes } from './llmParsers'
+import { selectExampleContext } from './exampleContext'
 
-const CLAUDE_API = 'https://api.anthropic.com/v1/messages'
-
-function buildHeaders(apiKey: string) {
+function resolveLlmRuntime(apiKey: string) {
+  const store = getDefaultStore()
+  const provider = store.get(llmProviderAtom)
   return {
-    'x-api-key': apiKey,
-    'anthropic-version': '2023-06-01',
-    'content-type': 'application/json',
-    'anthropic-dangerous-direct-browser-access': 'true',
+    textModel: store.get(llmTextModelAtom),
+    visionModel: store.get(llmVisionModelAtom),
+    client: createLlmClient({
+      provider,
+      apiKey,
+    }),
   }
 }
 
-async function parseResponse(response: Response): Promise<string> {
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(
-      (err as { error?: { message?: string } }).error?.message ?? `API error ${response.status}`
-    )
-  }
-  const data = await response.json() as { content: Array<{ type: string; text: string }> }
-  return data.content.find(b => b.type === 'text')?.text ?? ''
+export async function listAvailableLlmModels(apiKey: string): Promise<LlmModelInfo[]> {
+  const store = getDefaultStore()
+  const provider = store.get(llmProviderAtom)
+  const client = createLlmClient({ provider, apiKey })
+  return client.listModels()
 }
 
 const CACHE_PREFIX = 'vocab_cache:'
@@ -61,22 +63,23 @@ function cached(key: string, fetcher: () => Promise<string>, force = false): Pro
   return inflight.get(key)!
 }
 
-async function callHaiku(apiKey: string, prompt: string, maxTokens: number, thinkingTokens: number = 0): Promise<string> {
-  const response = await fetch(CLAUDE_API, {
-    method: 'POST',
-    headers: buildHeaders(apiKey),
-    body: JSON.stringify({
-      //model: 'claude-haiku-4-5-20251001',
-      model: 'claude-sonnet-4-6',
-      max_tokens: thinkingTokens + maxTokens,
-      thinking: thinkingTokens > 0 ? {
-        type: "enabled",
-        budget_tokens: thinkingTokens,
-      } : undefined,
-      messages: [{ role: 'user', content: prompt }],
-    })
+async function callTextModel(
+  apiKey: string,
+  feature: LlmFeature,
+  prompt: string,
+  maxTokens: number,
+  thinkingTokens: number = 0,
+  context?: Record<string, number>,
+): Promise<string> {
+  const { client, textModel } = resolveLlmRuntime(apiKey)
+  return client.completeText({
+    model: textModel,
+    feature,
+    prompt,
+    maxTokens,
+    thinkingTokens,
+    context,
   })
-  return parseResponse(response)
 }
 
 export async function transcribeImage(
@@ -84,37 +87,28 @@ export async function transcribeImage(
   base64: string,
   mimeType: string
 ): Promise<string> {
-  const response = await fetch(CLAUDE_API, {
-    method: 'POST',
-    headers: buildHeaders(apiKey),
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
-      system: OCR_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
-            {
-              type: 'text',
-              text: OCR_USER_PROMPT,
-            },
-          ],
-        }
-      ],
-    }),
+  const { client, visionModel } = resolveLlmRuntime(apiKey)
+  return client.completeFromImage({
+    model: visionModel,
+    feature: 'transcribe_image',
+    imageBase64: base64,
+    mimeType,
+    prompt: OCR_USER_PROMPT,
+    system: OCR_SYSTEM_PROMPT,
+    maxTokens: 4096,
   })
-  return parseResponse(response)
 }
 
 export async function extractWords(
   apiKey: string,
   transcription: string,
 ): Promise<Word[]> {
-  const text = await callHaiku(apiKey,
+  const text = await callTextModel(apiKey,
+    'extract_words',
     extractWordsPrompt(transcription),
-    1024, 2048)
+    1024, 2048,
+    { sourceTextLength: transcription.length },
+  )
 
   return parseWordLines(text)
 }
@@ -126,10 +120,12 @@ export async function annotateSentence(
   force = false,
 ): Promise<[string, string, string]> {
   const key = `annotate:${sentence}:${word}`
-  const raw = await cached(key, () => callHaiku(
+  const raw = await cached(key, () => callTextModel(
     apiKey,
+    'annotate_sentence',
     annotateSentencePrompt(sentence, word),
     512, 1024,
+    { sentenceLength: sentence.length, wordLength: word.length },
   ), force)
   const answerLine = raw.trim().split('\n').filter(l => l.includes('|')).pop() ?? ''
   const [before = '', wordPart = word, after = ''] = answerLine.split('|')
@@ -137,10 +133,13 @@ export async function annotateSentence(
 }
 
 export function addFurigana(apiKey: string, text: string, force = false): Promise<string> {
-  return cached(`furigana:${text}`, () => callHaiku(
+  return cached(`furigana:${text}`, () => callTextModel(
     apiKey,
+    'add_furigana',
     furiganaPrompt(text),
     256,
+    0,
+    { textLength: text.length },
   ), force)
 }
 
@@ -151,10 +150,13 @@ export function defineWord(
   force = false,
 ): Promise<string> {
   const lang = targetLanguage || 'English'
-  return cached(`define:${word}:${lang}`, () => callHaiku(
+  return cached(`define:${word}:${lang}`, () => callTextModel(
     apiKey,
+    'define_word',
     defineWordPrompt(word, lang),
     64,
+    0,
+    { wordLength: word.length },
   ), force)
 }
 
@@ -164,18 +166,24 @@ export function translateSentence(
   targetLanguage: string,
 ): Promise<string> {
   const key = `translate:${sentence}:${targetLanguage}`
-  return cached(key, () => callHaiku(
+  return cached(key, () => callTextModel(
     apiKey,
+    'translate_sentence',
     translateSentencePrompt(sentence, targetLanguage),
     128,
+    0,
+    { sentenceLength: sentence.length },
   ))
 }
 
 export async function splitWord(apiKey: string, word: string): Promise<Word[]> {
-  const text = await callHaiku(
+  const text = await callTextModel(
     apiKey,
+    'split_word',
     splitWordPrompt(word),
     128,
+    0,
+    { wordLength: word.length },
   )
   return parseWordLines(text)
 }
@@ -185,10 +193,13 @@ export async function convertWordToKanji(
   transcription: string,
   word: string,
 ): Promise<string> {
-  const text = await cached(`kanji:${transcription}:${word}`, () => callHaiku(
+  const text = await cached(`kanji:${transcription}:${word}`, () => callTextModel(
     apiKey,
+    'convert_word_to_kanji',
     convertWordToKanjiPrompt(transcription, word),
     64,
+    0,
+    { sourceTextLength: transcription.length, wordLength: word.length },
   ))
   return text.trim().split(/\s+/)[0] || word
 }
@@ -201,11 +212,21 @@ export function generateExample(
   options: GenerateOptions = {}
 ): Promise<string> {
   const { previousSentence, simplify, feedback } = options
-  return callHaiku(
+  const selectedContext = selectExampleContext(transcription, word)
+  return callTextModel(
     apiKey,
-    generateExamplePrompt(transcription, word, jlptLevel, previousSentence, simplify, feedback),
+    'generate_example',
+    generateExamplePrompt(selectedContext.text, word, jlptLevel, previousSentence, simplify, feedback),
     256,
     1024,
+    {
+      sourceTextLength: transcription.length,
+      contextTextLength: selectedContext.text.length,
+      contextFallback: selectedContext.usedFallback ? 1 : 0,
+      contextMethodExact: selectedContext.method === 'exact' ? 1 : 0,
+      contextMethodRelaxed: selectedContext.method === 'relaxed' ? 1 : 0,
+      wordLength: word.length,
+    },
   )
 }
 
@@ -217,7 +238,14 @@ export async function resolveManualVocab(
 ): Promise<ManualVocabResolution> {
   const cleanWord = word.trim()
   const lang = targetLanguage || 'English'
-  const raw = await callHaiku(apiKey, resolveManualVocabPrompt(cleanWord, lang, context), 512)
+  const raw = await callTextModel(
+    apiKey,
+    'resolve_manual_vocab',
+    resolveManualVocabPrompt(cleanWord, lang, context),
+    512,
+    0,
+    { wordLength: cleanWord.length, contextLength: context?.length ?? 0 },
+  )
   return parseManualVocabResolution(raw, cleanWord)
 }
 
@@ -229,10 +257,12 @@ export function generateManualExample(
   meaning?: string,
   context?: string,
 ): Promise<string> {
-  return callHaiku(
+  return callTextModel(
     apiKey,
+    'generate_manual_example',
     generateManualExamplePrompt(word, jlptLevel, options, meaning, context),
     256,
     1024,
+    { wordLength: word.length, meaningLength: meaning?.length ?? 0, contextLength: context?.length ?? 0 },
   )
 }

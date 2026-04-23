@@ -4,6 +4,11 @@ export const JLPT_LEVELS: JlptLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1']
 
 // Storage keys
 export const KEY_API_KEY        = 'vocab_api_key'
+export const KEY_LLM_API_KEYS   = 'vocab_llm_api_keys'
+export const KEY_LLM_PROVIDER   = 'vocab_llm_provider'
+export const KEY_LLM_TEXT_MODEL = 'vocab_llm_text_model'
+export const KEY_LLM_VISION_MODEL = 'vocab_llm_vision_model'
+export const KEY_LLM_USAGE      = 'vocab_llm_usage'
 export const KEY_JLPT_LEVEL     = 'vocab_jlpt_level'
 export const KEY_NATIVE_LANG    = 'vocab_native_language'
 export const KEY_SESSION        = 'vocab_session'

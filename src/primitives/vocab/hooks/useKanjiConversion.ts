@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { convertWordToKanji } from '../../../api/claude'
+import { convertWordToKanji } from '../../../api/llm'
 import type { Word } from '../../../types'
 import { replaceWord } from './vocabStateHelpers'
 

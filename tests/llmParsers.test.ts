@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { parseManualVocabResolution, parseWordLines, stripWrappingJapaneseQuotes } from '../src/api/claudeParsers'
+import { parseManualVocabResolution, parseWordLines, stripWrappingJapaneseQuotes } from '../src/api/llmParsers'
 
 test('stripWrappingJapaneseQuotes removes only balanced outer Japanese quotes across split parts', () => {
   expect(

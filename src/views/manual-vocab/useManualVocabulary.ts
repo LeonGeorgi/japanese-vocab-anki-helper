@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { GenerateOptions, JlptLevel, ManualVocabOption } from '../../types'
-import { generateManualExample, resolveManualVocab } from '../../api/claude'
+import { generateManualExample, resolveManualVocab } from '../../api/llm'
 import { useManualVocabSession } from './useManualVocabSession'
 import { useExampleTranslation } from '../../primitives/vocab/hooks/useExampleTranslation'
 import { useKanjiConversion } from '../../primitives/vocab/hooks/useKanjiConversion'

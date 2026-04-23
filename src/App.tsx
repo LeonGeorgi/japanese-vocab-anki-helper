@@ -25,6 +25,7 @@ import { AppSidebar } from './app/AppSidebar'
 import { AppSettingsDialog } from './app/AppSettingsDialog'
 import { TextVocabPanel } from './views/text-vocab/TextVocabPanel'
 import { ManualVocabPanel } from './views/manual-vocab/ManualVocabPanel'
+import { StatsPage } from './views/stats/StatsPage'
 import styles from './app/App.module.css'
 
 const AnkiBackfillPanel = isAnkiBackfillEnabled
@@ -194,6 +195,7 @@ export default function App() {
               }
             />
           )}
+          <Route path="/stats" element={<StatsPage />} />
           <Route path="*" element={<Navigate to={`/session/${textVocabSession.id}`} replace />} />
         </Routes>
       </main>

@@ -1,6 +1,6 @@
 import { getDefaultStore } from 'jotai'
 import { addNote } from './anki'
-import { annotateSentence, defineWord, translateSentence } from './claude'
+import { annotateSentence, defineWord, translateSentence } from './llm'
 import { toAnkiNoteFields } from './ankiNoteFields'
 import {
   ankiDeckAtom,

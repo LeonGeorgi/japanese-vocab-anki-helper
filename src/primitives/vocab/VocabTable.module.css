@@ -45,3 +45,53 @@
   width: 100%;
   border-collapse: collapse;
 }
+
+.skeletonRow {
+  border-top: 1px solid var(--border);
+}
+
+.skeletonWordCell {
+  width: 30%;
+  padding: 12px 16px;
+}
+
+.skeletonExampleCell {
+  padding: 12px 16px 12px 0;
+}
+
+.skeletonWord,
+.skeletonLine,
+.skeletonLineShort {
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(203, 213, 225, 0.35) 0%,
+    rgba(148, 163, 184, 0.26) 50%,
+    rgba(203, 213, 225, 0.35) 100%
+  );
+  background-size: 220% 100%;
+  animation: vocabTableSkeletonPulse 1.2s ease-in-out infinite;
+}
+
+.skeletonWord {
+  width: 72%;
+}
+
+.skeletonLine {
+  width: min(480px, 82%);
+}
+
+.skeletonLineShort {
+  margin-top: 8px;
+  width: min(320px, 56%);
+}
+
+@keyframes vocabTableSkeletonPulse {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}

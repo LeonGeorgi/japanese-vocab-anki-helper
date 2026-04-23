@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { useState } from 'react'
-import { transcribeImage } from '../../api/claude'
+import { transcribeImage } from '../../api/llm'
 
 interface UseImageTranscriptionArgs {
   apiKey: string

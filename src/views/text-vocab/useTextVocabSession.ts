@@ -35,9 +35,15 @@ export function useTextVocabSession() {
   }
 
   const setExamples: Dispatch<SetStateAction<Record<string, Example>>> = value => {
-    const next = typeof value === 'function' ? value(examples) : value
-    setExampleStatuses(toExampleStatuses(next))
-    setSession(prev => ({ ...prev, examples: toStoredExamples(next) }))
+    setExampleStatuses(prevStatuses => {
+      let nextExamples: Record<string, Example> = {}
+      setSession(prevSession => {
+        const current = hydrateExamples(prevSession.examples, prevStatuses)
+        nextExamples = typeof value === 'function' ? value(current) : value
+        return { ...prevSession, examples: toStoredExamples(nextExamples) }
+      })
+      return toExampleStatuses(nextExamples)
+    })
   }
 
   const setFilterEasy: Dispatch<SetStateAction<boolean>> = value => {

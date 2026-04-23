@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
-import { splitWord } from '../../../api/claude'
+import { splitWord } from '../../../api/llm'
 import type { Word } from '../../../types'
 import { replaceWordWithComponents } from './vocabStateHelpers'
 

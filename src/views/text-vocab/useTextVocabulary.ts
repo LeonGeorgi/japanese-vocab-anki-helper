@@ -1,5 +1,5 @@
 import type { GenerateOptions, JlptLevel } from '../../types'
-import { generateExample } from '../../api/claude'
+import { generateExample } from '../../api/llm'
 import { useTextVocabSession } from './useTextVocabSession'
 import { useExampleTranslation } from '../../primitives/vocab/hooks/useExampleTranslation'
 import { useImageTranscription } from './useImageTranscription'
