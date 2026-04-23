@@ -1,7 +1,7 @@
 import { getDefaultStore } from 'jotai'
-import { addNote } from './anki'
+import { addNote, getModelFieldNames } from './anki'
 import { annotateSentence, defineWord, translateSentence } from './llm'
-import { toAnkiNoteFields } from './ankiNoteFields'
+import { fieldMappingForModelFields, toAnkiNoteFields } from './ankiNoteFields'
 import {
   ankiDeckAtom,
   ankiFieldMappingAtom,
@@ -70,5 +70,14 @@ export async function quickAddAnkiCard(
 ) {
   const { deck, model, fields } = getStoredAnkiConfig()
   const generatedFields = await generateAnkiFields(apiKey, word, sentence, translation, nativeLanguage)
-  await addNote(deck, model, toAnkiNoteFields(fields, generatedFields))
+  let resolvedFieldMapping = fields
+  try {
+    const modelFields = await getModelFieldNames(model)
+    if (modelFields.length > 0) {
+      resolvedFieldMapping = fieldMappingForModelFields(modelFields, fields)
+    }
+  } catch {
+    // Fallback to stored mapping if model fields cannot be loaded.
+  }
+  await addNote(deck, model, toAnkiNoteFields(resolvedFieldMapping, generatedFields))
 }
