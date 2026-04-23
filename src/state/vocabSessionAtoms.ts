@@ -20,6 +20,7 @@ export interface TextVocabSession {
   id: string
   createdAt: number
   updatedAt: number
+  title: string
   transcription: string
   words: Word[]
   examples: Record<string, StoredExample>
@@ -38,6 +39,7 @@ export interface ManualVocabSession {
   id: string
   createdAt: number
   updatedAt: number
+  title: string
   words: Word[]
   examples: Record<string, StoredExample>
   meanings: Record<string, string>
@@ -100,6 +102,11 @@ export const resetTextVocabAtom = atom(null, (get, set) => {
   return next.id
 })
 
+export const setTextVocabSessionTitleAtom = atom(null, (_get, set, title: string) => {
+  const value = title.trimStart()
+  set(textVocabSessionAtom, prev => ({ ...prev, title: value }))
+})
+
 export const manualVocabSessionAtom = atom(
   get => normalizeManualVocabSession(get(storedManualVocabSessionAtom)),
   (get, set, update: StateUpdate<ManualVocabSession>) => {
@@ -137,12 +144,18 @@ export const resetManualVocabAtom = atom(null, (get, set) => {
   return next.id
 })
 
+export const setManualVocabSessionTitleAtom = atom(null, (_get, set, title: string) => {
+  const value = title.trimStart()
+  set(manualVocabSessionAtom, prev => ({ ...prev, title: value }))
+})
+
 export function createEmptyTextVocabSession(): TextVocabSession {
   const now = Date.now()
   return {
     id: createTextSessionId(),
     createdAt: now,
     updatedAt: now,
+    title: '',
     transcription: '',
     words: [],
     examples: {},
@@ -159,6 +172,7 @@ function normalizeTextVocabSession(
     id: session.id ?? previous?.id ?? createTextSessionId(),
     createdAt: session.createdAt ?? previous?.createdAt ?? now,
     updatedAt: previous && session !== previous ? now : session.updatedAt ?? now,
+    title: session.title ?? previous?.title ?? '',
     transcription: session.transcription ?? '',
     words: session.words ?? [],
     examples: session.examples ?? {},
@@ -176,6 +190,7 @@ export function createEmptyManualVocabSession(): ManualVocabSession {
     id: createManualSessionId(),
     createdAt: now,
     updatedAt: now,
+    title: '',
     words: [],
     examples: {},
     meanings: {},
@@ -192,6 +207,7 @@ function normalizeManualVocabSession(
     id: session.id ?? previous?.id ?? createManualSessionId(),
     createdAt: session.createdAt ?? previous?.createdAt ?? now,
     updatedAt: previous && session !== previous ? now : session.updatedAt ?? now,
+    title: session.title ?? previous?.title ?? '',
     words: session.words ?? [],
     examples: session.examples ?? {},
     meanings: session.meanings ?? {},
@@ -237,6 +253,8 @@ function isEmptyTextVocabSession(session: TextVocabSession): boolean {
 }
 
 function textVocabHistoryTitle(session: TextVocabSession): string {
+  if (session.title.trim()) return session.title.trim().slice(0, 72)
+
   const firstLine = session.transcription.trim().split(/\r?\n/).find(Boolean)
   if (firstLine) return firstLine.slice(0, 72)
 
@@ -260,6 +278,8 @@ function isEmptyManualVocabSession(session: ManualVocabSession): boolean {
 }
 
 function manualVocabHistoryTitle(session: ManualVocabSession): string {
+  if (session.title.trim()) return session.title.trim().slice(0, 72)
+
   const words = session.words.slice(0, 4).map(word => word.word).join(', ')
   return words || 'Untitled manual session'
 }

@@ -1,8 +1,6 @@
 import { useMemo } from 'react'
-import { useAtom } from 'jotai'
 import type { Word, Example, JlptLevel, GenerateOptions } from '../../types'
 import { EASY_LEVELS } from '../../constants'
-import { ankiLookupDeckAtom } from '../../state/ankiAtoms'
 import { useAnkiStatus } from '../anki/useAnkiStatus'
 import { VocabRow } from './VocabRow'
 import styles from './VocabTable.module.css'
@@ -27,7 +25,6 @@ interface Props {
 
 export function VocabTable({ title = 'Vocabulary', words, examples, apiKey, jlptLevel, filterEasy, nativeLanguage, onFilterChange, onGenerate, onTranslate, onSplit, onConvertToKanji, onNotify }: Props) {
   const easyLevels = EASY_LEVELS[jlptLevel]
-  const [lookupDeck, setLookupDeck] = useAtom(ankiLookupDeckAtom)
   const { inAnki, refresh } = useAnkiStatus(words)
 
   const displayedWords = useMemo(() => {
@@ -37,10 +34,6 @@ export function VocabTable({ title = 'Vocabulary', words, examples, apiKey, jlpt
 
   const hiddenCount = words.length - displayedWords.length
 
-  function copyAll() {
-    navigator.clipboard.writeText(displayedWords.map(w => w.word).join('\n'))
-  }
-
   return (
     <div className="step">
       <div className="step-label">{title}</div>
@@ -49,14 +42,6 @@ export function VocabTable({ title = 'Vocabulary', words, examples, apiKey, jlpt
           <div className={styles.headerLeft}>
             <span className={styles.count}>{displayedWords.length} words</span>
             {hiddenCount > 0 && <span className={styles.hiddenCount}>{hiddenCount} hidden</span>}
-            <label className={styles.lookupDeckLabel}>
-              Lookup deck
-              <input
-                className={styles.lookupDeckInput}
-                value={lookupDeck}
-                onChange={e => setLookupDeck(e.target.value)}
-              />
-            </label>
           </div>
           <div className={styles.headerRight}>
             {easyLevels.length > 0 && (
@@ -69,9 +54,6 @@ export function VocabTable({ title = 'Vocabulary', words, examples, apiKey, jlpt
                 Hide {easyLevels.join('/')} words
               </label>
             )}
-            <button className="btn btn-ghost" onClick={copyAll}>
-              Copy all
-            </button>
           </div>
         </div>
         <table className={styles.table}>

@@ -10,11 +10,15 @@ interface Props {
     retry: () => void
   }
   onNewSession: (kind: 'text' | 'manual') => void
+  currentSessionTitle: string | null
+  onCurrentSessionTitleChange: (title: string) => void
 }
 
 export function Header({
   ankiConnection,
   onNewSession,
+  currentSessionTitle,
+  onCurrentSessionTitleChange,
 }: Props) {
   const [newSessionOpen, setNewSessionOpen] = useState(false)
   const ankiLabel = ankiConnection.status === 'connected'
@@ -30,9 +34,16 @@ export function Header({
 
   return (
     <header className={styles.header}>
-      <div className={styles.brand}>
-        <h1>Vocab</h1>
-        <p>Create Japanese Anki cards</p>
+      <div className={styles.left}>
+        {currentSessionTitle !== null && (
+          <input
+            className={styles.titleInput}
+            type="text"
+            placeholder="Untitled session"
+            value={currentSessionTitle}
+            onChange={e => onCurrentSessionTitleChange(e.target.value)}
+          />
+        )}
       </div>
       <div className={styles.right}>
         <div className={styles.controls}>

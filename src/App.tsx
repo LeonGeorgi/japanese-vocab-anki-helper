@@ -14,6 +14,8 @@ import {
   resetManualVocabAtom,
   restoreManualVocabHistoryAtom,
   resetTextVocabAtom,
+  setManualVocabSessionTitleAtom,
+  setTextVocabSessionTitleAtom,
   restoreTextVocabHistoryAtom,
   textVocabHistoryAtom,
   textVocabSessionAtom,
@@ -59,6 +61,8 @@ export default function App() {
   const deleteTextVocabHistoryEntry = useSetAtom(deleteTextVocabHistoryEntryAtom)
   const restoreManualVocabHistory = useSetAtom(restoreManualVocabHistoryAtom)
   const deleteManualVocabHistoryEntry = useSetAtom(deleteManualVocabHistoryEntryAtom)
+  const setTextSessionTitle = useSetAtom(setTextVocabSessionTitleAtom)
+  const setManualSessionTitle = useSetAtom(setManualVocabSessionTitleAtom)
 
   const routeSessionId = location.pathname.match(/^\/session\/([^/]+)$/)?.[1] ?? null
   const textHistoryEntry = routeSessionId ? textVocabHistory.find(entry => entry.id === routeSessionId) : undefined
@@ -110,6 +114,11 @@ export default function App() {
     navigate(`/session/${id}`)
   }
 
+  function handleCurrentSessionTitleChange(title: string) {
+    if (routeSessionKind === 'manual') setManualSessionTitle(title)
+    else if (routeSessionKind === 'text') setTextSessionTitle(title)
+  }
+
   return (
     <div className={styles.shell}>
       {notification && (
@@ -136,6 +145,14 @@ export default function App() {
         <Header
           ankiConnection={ankiConnection}
           onNewSession={handleNewSession}
+          currentSessionTitle={
+            routeSessionKind === 'manual'
+              ? manualVocabSession.title
+              : routeSessionKind === 'text'
+                ? textVocabSession.title
+                : null
+          }
+          onCurrentSessionTitleChange={handleCurrentSessionTitleChange}
         />
         <Routes>
           <Route path="/" element={<Navigate to={`/session/${textVocabSession.id}`} replace />} />

@@ -1,6 +1,6 @@
 .header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 28px;
@@ -12,30 +12,44 @@
   padding-bottom: 12px;
   margin-top: -14px;
   border-bottom: 1px solid rgba(229, 231, 235, 0.75);
-}
-
-.brand {
-  min-width: 126px;
-}
-
-.brand h1 {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.15;
-}
-
-.brand p {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 1px;
-  white-space: nowrap;
+  min-height: 54px;
 }
 
 .right {
   display: flex;
   min-width: 0;
   align-items: flex-end;
+}
+
+.left {
+  min-width: 0;
+  flex: 1;
+}
+
+.titleInput {
+  height: 38px;
+  width: 100%;
+  max-width: 420px;
+  padding: 0 2px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 1.1;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.titleInput::placeholder {
+  color: var(--text-muted);
+}
+
+.titleInput:focus {
+  border-color: var(--accent);
+  background: var(--surface);
 }
 
 .controls {
@@ -160,6 +174,8 @@
 @media (max-width: 680px) {
   .header {
     align-items: flex-start;
+    min-height: 0;
+    flex-direction: column;
   }
 
   .right {
@@ -168,6 +184,11 @@
   }
 
   .controls {
-    justify-content: flex-start;
+    justify-content: space-between;
+  }
+
+  .titleInput {
+    max-width: none;
+    font-size: 20px;
   }
 }

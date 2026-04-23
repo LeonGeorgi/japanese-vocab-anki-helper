@@ -41,32 +41,6 @@
   color: var(--text-muted);
 }
 
-.lookupDeckLabel {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-left: 4px;
-}
-
-.lookupDeckInput {
-  padding: 2px 7px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 12px;
-  font-family: inherit;
-  background: var(--surface);
-  color: var(--text);
-  outline: none;
-  width: 120px;
-  transition: border-color 0.15s;
-}
-
-.lookupDeckInput:focus {
-  border-color: var(--accent);
-}
-
 .table {
   width: 100%;
   border-collapse: collapse;
