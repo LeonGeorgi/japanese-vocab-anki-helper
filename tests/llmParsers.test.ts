@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { parseManualVocabResolution, parseWordLines, stripWrappingJapaneseQuotes } from '../src/api/llmParsers'
+import { parseManualVocabResolution, parseWordLines, stripResponseTag, stripWrappingJapaneseQuotes, stripXmlLikeTags } from '../src/api/llmParsers'
 
 test('stripWrappingJapaneseQuotes removes only balanced outer Japanese quotes across split parts', () => {
   expect(
@@ -31,6 +31,15 @@ test('parseWordLines trims words, drops duplicates, and normalizes unknown level
     ])
 })
 
+test('parseWordLines ignores echoed xml-like tags', () => {
+  expect(
+    parseWordLines('<output>\n勉強する|N5\n醸造|N1\n</output>'),
+  ).toEqual([
+    { word: '勉強する', level: 'N5' },
+    { word: '醸造', level: 'N1' },
+  ])
+})
+
 test('parseManualVocabResolution parses clear and ambiguous JSON responses', () => {
   expect(
     parseManualVocabResolution('{"status":"clear","word":"橋","meaning":"bridge"}', 'はし'),
@@ -55,4 +64,16 @@ test('parseManualVocabResolution falls back to a clear result when JSON is inval
     status: 'clear',
     option: { word: 'はし', meaning: '' },
   })
+})
+
+test('stripResponseTag unwraps response tags when present', () => {
+  expect(stripResponseTag('<response>店のお客が増えた。</response>')).toBe('店のお客が増えた。')
+  expect(stripResponseTag(' <response>\n店のお客が増えた。\n</response> ')).toBe('店のお客が増えた。')
+  expect(stripResponseTag('<output><response>店のお客が増えた。</response></output>')).toBe('店のお客が増えた。')
+  expect(stripResponseTag('店のお客が増えた。')).toBe('店のお客が増えた。')
+})
+
+test('stripXmlLikeTags removes generic xml-like wrappers', () => {
+  expect(stripXmlLikeTags('<output><word>橋</word></output>')).toBe('橋')
+  expect(stripXmlLikeTags(' <thinking>\nIdea A\n</thinking> ')).toBe('Idea A')
 })

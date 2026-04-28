@@ -14,8 +14,9 @@ export function stripWrappingJapaneseQuotes(parts: [string, string, string]): [s
 }
 
 export function parseWordLines(text: string): Word[] {
+  const cleaned = stripXmlLikeTags(text)
   const seen = new Set<string>()
-  return text
+  return cleaned
     .split('\n')
     .map(line => {
       const [word, level] = line.trim().split('|')
@@ -28,9 +29,23 @@ export function parseWordLines(text: string): Word[] {
     }))
 }
 
+export function stripXmlLikeTags(text: string): string {
+  return text
+    .replace(/<\/?[A-Za-z][A-Za-z0-9_-]*>/g, '')
+    .trim()
+}
+
+export function stripResponseTag(text: string): string {
+  const trimmed = text.trim()
+  const wrapped = trimmed.match(/^<response>\s*([\s\S]*?)\s*<\/response>$/i)
+  if (wrapped) return wrapped[1].trim()
+  return stripXmlLikeTags(trimmed.replace(/<\/?response>/gi, ''))
+}
+
 function extractJsonObject(text: string) {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]
-  const candidate = fenced ?? text
+  const cleaned = stripXmlLikeTags(text)
+  const fenced = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]
+  const candidate = fenced ?? cleaned
   const start = candidate.indexOf('{')
   const end = candidate.lastIndexOf('}')
   return start >= 0 && end > start ? candidate.slice(start, end + 1) : candidate

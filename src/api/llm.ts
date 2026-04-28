@@ -3,20 +3,30 @@ import type { GenerateOptions, JlptLevel, ManualVocabResolution, Word } from '..
 import { createLlmClient, type LlmFeature, type LlmModelInfo } from '../llm'
 import { llmProviderAtom, llmTextModelAtom, llmVisionModelAtom } from '../state/settingsAtoms'
 import {
+  ANNOTATE_SENTENCE_SYSTEM_PROMPT,
+  CONVERT_WORD_TO_KANJI_SYSTEM_PROMPT,
+  EXTRACT_WORDS_SYSTEM_PROMPT,
+  FURIGANA_SYSTEM_PROMPT,
   OCR_SYSTEM_PROMPT,
   OCR_USER_PROMPT,
+  SPLIT_WORD_SYSTEM_PROMPT,
   annotateSentencePrompt,
   convertWordToKanjiPrompt,
+  defineWordSystemPrompt,
   defineWordPrompt,
   extractWordsPrompt,
   furiganaPrompt,
   generateExamplePrompt,
+  generateExampleSystemPrompt,
   generateManualExamplePrompt,
+  generateManualExampleSystemPrompt,
+  resolveManualVocabSystemPrompt,
   resolveManualVocabPrompt,
   splitWordPrompt,
+  translateSentenceSystemPrompt,
   translateSentencePrompt,
 } from './llmPrompts'
-import { parseManualVocabResolution, parseWordLines, stripWrappingJapaneseQuotes } from './llmParsers'
+import { parseManualVocabResolution, parseWordLines, stripResponseTag, stripWrappingJapaneseQuotes, stripXmlLikeTags } from './llmParsers'
 import { selectExampleContext } from './exampleContext'
 
 function resolveLlmRuntime(apiKey: string) {
@@ -69,6 +79,7 @@ async function callTextModel(
   prompt: string,
   maxTokens: number,
   thinkingTokens: number = 0,
+  system?: string,
   context?: Record<string, number>,
 ): Promise<string> {
   const { client, textModel } = resolveLlmRuntime(apiKey)
@@ -78,6 +89,7 @@ async function callTextModel(
     prompt,
     maxTokens,
     thinkingTokens,
+    system,
     context,
   })
 }
@@ -107,6 +119,7 @@ export async function extractWords(
     'extract_words',
     extractWordsPrompt(transcription),
     1024, 2048,
+    EXTRACT_WORDS_SYSTEM_PROMPT,
     { sourceTextLength: transcription.length },
   )
 
@@ -125,9 +138,10 @@ export async function annotateSentence(
     'annotate_sentence',
     annotateSentencePrompt(sentence, word),
     512, 1024,
+    ANNOTATE_SENTENCE_SYSTEM_PROMPT,
     { sentenceLength: sentence.length, wordLength: word.length },
   ), force)
-  const answerLine = raw.trim().split('\n').filter(l => l.includes('|')).pop() ?? ''
+  const answerLine = stripXmlLikeTags(raw).split('\n').filter(l => l.includes('|')).pop() ?? ''
   const [before = '', wordPart = word, after = ''] = answerLine.split('|')
   return stripWrappingJapaneseQuotes([before, wordPart, after])
 }
@@ -139,8 +153,9 @@ export function addFurigana(apiKey: string, text: string, force = false): Promis
     furiganaPrompt(text),
     256,
     0,
+    FURIGANA_SYSTEM_PROMPT,
     { textLength: text.length },
-  ), force)
+  ).then(stripXmlLikeTags), force)
 }
 
 export function defineWord(
@@ -153,11 +168,12 @@ export function defineWord(
   return cached(`define:${word}:${lang}`, () => callTextModel(
     apiKey,
     'define_word',
-    defineWordPrompt(word, lang),
+    defineWordPrompt(word),
     64,
     0,
+    defineWordSystemPrompt(lang),
     { wordLength: word.length },
-  ), force)
+  ).then(stripXmlLikeTags), force)
 }
 
 export function translateSentence(
@@ -169,11 +185,12 @@ export function translateSentence(
   return cached(key, () => callTextModel(
     apiKey,
     'translate_sentence',
-    translateSentencePrompt(sentence, targetLanguage),
+    translateSentencePrompt(sentence),
     128,
     0,
+    translateSentenceSystemPrompt(targetLanguage),
     { sentenceLength: sentence.length },
-  ))
+  ).then(stripXmlLikeTags))
 }
 
 export async function splitWord(apiKey: string, word: string): Promise<Word[]> {
@@ -183,6 +200,7 @@ export async function splitWord(apiKey: string, word: string): Promise<Word[]> {
     splitWordPrompt(word),
     128,
     0,
+    SPLIT_WORD_SYSTEM_PROMPT,
     { wordLength: word.length },
   )
   return parseWordLines(text)
@@ -199,8 +217,9 @@ export async function convertWordToKanji(
     convertWordToKanjiPrompt(transcription, word),
     64,
     0,
+    CONVERT_WORD_TO_KANJI_SYSTEM_PROMPT,
     { sourceTextLength: transcription.length, wordLength: word.length },
-  ))
+  ).then(stripXmlLikeTags))
   return text.trim().split(/\s+/)[0] || word
 }
 
@@ -216,9 +235,10 @@ export function generateExample(
   return callTextModel(
     apiKey,
     'generate_example',
-    generateExamplePrompt(selectedContext.text, word, jlptLevel, previousSentence, simplify, feedback),
-    256,
+    generateExamplePrompt(selectedContext.text, word, previousSentence, simplify, feedback),
     1024,
+    1024,
+    generateExampleSystemPrompt(word, jlptLevel),
     {
       sourceTextLength: transcription.length,
       contextTextLength: selectedContext.text.length,
@@ -227,7 +247,7 @@ export function generateExample(
       contextMethodRelaxed: selectedContext.method === 'relaxed' ? 1 : 0,
       wordLength: word.length,
     },
-  )
+  ).then(stripResponseTag)
 }
 
 export async function resolveManualVocab(
@@ -241,9 +261,10 @@ export async function resolveManualVocab(
   const raw = await callTextModel(
     apiKey,
     'resolve_manual_vocab',
-    resolveManualVocabPrompt(cleanWord, lang, context),
+    resolveManualVocabPrompt(cleanWord, context),
     512,
     0,
+    resolveManualVocabSystemPrompt(lang),
     { wordLength: cleanWord.length, contextLength: context?.length ?? 0 },
   )
   return parseManualVocabResolution(raw, cleanWord)
@@ -260,9 +281,10 @@ export function generateManualExample(
   return callTextModel(
     apiKey,
     'generate_manual_example',
-    generateManualExamplePrompt(word, jlptLevel, options, meaning, context),
+    generateManualExamplePrompt(word, options, meaning, context),
     256,
     1024,
+    generateManualExampleSystemPrompt(word, jlptLevel),
     { wordLength: word.length, meaningLength: meaning?.length ?? 0, contextLength: context?.length ?? 0 },
-  )
+  ).then(stripResponseTag)
 }
