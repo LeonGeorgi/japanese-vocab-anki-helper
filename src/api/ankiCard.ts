@@ -48,7 +48,7 @@ export async function generateAnkiFields(
   const [[before, annotatedWord, after], definition, sentenceTranslation] = await Promise.all([
     annotateSentence(apiKey, sentence, word, force),
     defineWord(apiKey, word, lang, force),
-    translation ? Promise.resolve(translation) : translateSentence(apiKey, sentence, lang),
+    translation ? Promise.resolve(translation) : translateSentence(apiKey, sentence, lang, word),
   ])
 
   return {

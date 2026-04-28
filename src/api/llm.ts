@@ -180,16 +180,18 @@ export function translateSentence(
   apiKey: string,
   sentence: string,
   targetLanguage: string,
+  keyword?: string,
 ): Promise<string> {
-  const key = `translate:${sentence}:${targetLanguage}`
+  const cleanedKeyword = keyword?.trim() || ''
+  const key = `translate:${sentence}:${targetLanguage}:${cleanedKeyword}`
   return cached(key, () => callTextModel(
     apiKey,
     'translate_sentence',
-    translateSentencePrompt(sentence),
+    translateSentencePrompt(sentence, cleanedKeyword),
     128,
     0,
     translateSentenceSystemPrompt(targetLanguage),
-    { sentenceLength: sentence.length },
+    { sentenceLength: sentence.length, keywordLength: cleanedKeyword.length },
   ).then(stripXmlLikeTags))
 }
 

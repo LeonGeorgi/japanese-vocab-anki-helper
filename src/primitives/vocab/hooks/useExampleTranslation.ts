@@ -21,7 +21,7 @@ export function useExampleTranslation({
 
     setExamples(prev => ({ ...prev, [word]: { ...prev[word], translationLoading: true } }))
     try {
-      const translation = await translateSentence(apiKey, sentence, nativeLanguage)
+      const translation = await translateSentence(apiKey, sentence, nativeLanguage, word)
       setExamples(prev => ({ ...prev, [word]: { ...prev[word], translation, translationLoading: false } }))
     } catch {
       setExamples(prev => ({ ...prev, [word]: { ...prev[word], translationLoading: false } }))

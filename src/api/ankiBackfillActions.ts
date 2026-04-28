@@ -23,7 +23,7 @@ export async function fillBackfillNote(
   fieldNames: AnkiFieldNames,
 ) {
   const [sentenceTranslation, wordDefinition] = await Promise.all([
-    translateSentence(apiKey, note.sentence, nativeLanguage),
+    translateSentence(apiKey, note.sentence, nativeLanguage, note.plainWord),
     defineWord(apiKey, note.plainWord, nativeLanguage),
   ])
 

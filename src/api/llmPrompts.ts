@@ -140,13 +140,16 @@ Before answering, think silently about:
 - what information is explicit vs. omitted in the Japanese
 - the intended nuance and tone of the sentence
 - how to preserve the role and sense of the key words without sounding literal or awkward
+- how to translate the provided keyword a bit more literally, while still sounding natural in ${targetLanguage}
 - how to make the result clear and natural for a learner reading the card
 
 Do all analysis silently. Return only the final translation, nothing else.`
 }
 
-export function translateSentencePrompt(sentence: string) {
-  return sentence
+export function translateSentencePrompt(sentence: string, keyword?: string) {
+  return keyword?.trim()
+    ? `Keyword: 「${keyword.trim()}」\nSentence: ${sentence}`
+    : sentence
 }
 
 export const SPLIT_WORD_SYSTEM_PROMPT = `Split the provided Japanese compound word into its individual component words.
