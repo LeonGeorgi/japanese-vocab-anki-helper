@@ -33,30 +33,15 @@ export async function addNote(
   modelName: string,
   fields: Record<string, string>,
 ): Promise<void> {
-  let response: Response
-  try {
-    response = await fetch(ANKI_CONNECT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'addNote',
-        version: 6,
-        params: {
-          note: {
-            deckName,
-            modelName,
-            fields,
-            options: { allowDuplicate: false },
-            tags: ['vocab'],
-          },
-        },
-      }),
-    })
-  } catch {
-    throw new Error('Could not reach AnkiConnect. Is Anki running?')
-  }
-  const data = await response.json() as { error: string | null; result: number | null }
-  if (data.error) throw new Error(data.error)
+  await invokeAnki<number | null>('addNote', {
+    note: {
+      deckName,
+      modelName,
+      fields,
+      options: { allowDuplicate: false },
+      tags: ['vocab'],
+    },
+  })
 }
 
 export async function findNotes(deck: string, fieldName: string, words: string[]): Promise<Set<string>> {
@@ -65,19 +50,14 @@ export async function findNotes(deck: string, fieldName: string, words: string[]
     action: 'findNotes',
     params: { query: `deck:"${deck}" ${fieldName}:${word}` },
   }))
-  let response: Response
+  let results: number[][]
   try {
-    response = await fetch(ANKI_CONNECT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'multi', version: 6, params: { actions } }),
-    })
+    results = await invokeAnki<number[][]>('multi', { actions })
   } catch {
     return new Set()
   }
-  const data = await response.json() as { result: number[][] }
   const found = new Set<string>()
-  data.result.forEach((noteIds, i) => {
+  results.forEach((noteIds, i) => {
     if (noteIds.length > 0) found.add(words[i])
   })
   return found
@@ -123,20 +103,5 @@ export async function getAnkiConnectVersion(): Promise<number> {
 }
 
 export async function storeMediaFileData(filename: string, base64: string): Promise<void> {
-  let response: Response
-  try {
-    response = await fetch(ANKI_CONNECT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'storeMediaFile',
-        version: 6,
-        params: { filename, data: base64 },
-      }),
-    })
-  } catch {
-    throw new Error('Could not reach AnkiConnect. Is Anki running?')
-  }
-  const data = await response.json() as { error: string | null }
-  if (data.error) throw new Error(data.error)
+  await invokeAnki<string>('storeMediaFile', { filename, data: base64 })
 }
