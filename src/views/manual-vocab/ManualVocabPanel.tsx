@@ -18,18 +18,17 @@ export function ManualVocabPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }
   const [input, setInput] = useState('')
   const [keepContext, setKeepContext] = useAtom(manualKeepContextAtom)
   const [savedContext, setSavedContext] = useAtom(manualContextAtom)
-  const [context, setContext] = useState(() => keepContext === 'true' ? savedContext : '')
+  const [context, setContext] = useState(() => keepContext ? savedContext : '')
   const [filterEasy, setFilterEasy] = useState(false)
   const manualVocabulary = useManualVocabulary(apiKey, nativeLanguage, jlptLevel)
-  const shouldKeepContext = keepContext === 'true'
 
   function updateContext(value: string) {
     setContext(value)
-    if (shouldKeepContext) setSavedContext(value)
+    if (keepContext) setSavedContext(value)
   }
 
   function updateKeepContext(checked: boolean) {
-    setKeepContext(checked ? 'true' : 'false')
+    setKeepContext(checked)
     setSavedContext(checked ? context : '')
   }
 
@@ -38,7 +37,7 @@ export function ManualVocabPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }
     if (!word) return
     const contextValue = context.trim()
     setInput('')
-    if (shouldKeepContext) {
+    if (keepContext) {
       setSavedContext(contextValue)
       setContext(contextValue)
     } else {
@@ -76,7 +75,7 @@ export function ManualVocabPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }
               <label className={`filter-checkbox ${styles.keepContext}`}>
                 <input
                   type="checkbox"
-                  checked={shouldKeepContext}
+                  checked={keepContext}
                   onChange={e => updateKeepContext(e.target.checked)}
                 />
                 Keep context after generating

@@ -44,5 +44,5 @@ export const apiKeyAtom = atom(
 )
 export const jlptLevelAtom = atomWithStorage<JlptLevel>(KEY_JLPT_LEVEL, 'N3', undefined, storageOptions)
 export const nativeLanguageAtom = atomWithStorage(KEY_NATIVE_LANG, '', undefined, storageOptions)
-export const manualKeepContextAtom = atomWithStorage<'true' | 'false'>(KEY_MANUAL_KEEP_CONTEXT, 'false', undefined, storageOptions)
+export const manualKeepContextAtom = atomWithStorage<boolean>(KEY_MANUAL_KEEP_CONTEXT, false, undefined, storageOptions)
 export const manualContextAtom = atomWithStorage(KEY_MANUAL_CONTEXT, '', undefined, storageOptions)
