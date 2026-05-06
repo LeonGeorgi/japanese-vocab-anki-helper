@@ -1,13 +1,22 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router'
+import {
+  IconChartBar,
+  IconChevronLeft,
+  IconChevronRight,
+  IconCards,
+  IconSettings,
+  IconTrash,
+} from '@tabler/icons-react'
 import { JLPT_LEVELS } from '../constants'
-import type { ManualVocabHistoryEntry, TextVocabHistoryEntry } from '../state/vocabSessionAtoms'
+import type { ManualVocabHistoryEntry, TextVocabHistoryEntry, TrainingHistoryEntry } from '../state/vocabSessionAtoms'
 import type { JlptLevel } from '../types'
 import styles from './AppSidebar.module.css'
 
 type SidebarSessionEntry =
   | (TextVocabHistoryEntry & { kind: 'text' })
   | (ManualVocabHistoryEntry & { kind: 'manual' })
+  | (TrainingHistoryEntry & { kind: 'training' })
 
 interface Props {
   entries: SidebarSessionEntry[]
@@ -17,7 +26,8 @@ interface Props {
   onOpenSettings: () => void
   onRestoreTextSession: (id: string) => void
   onRestoreManualSession: (id: string) => void
-  onDeleteSession: (kind: 'text' | 'manual', id: string) => void
+  onRestoreTrainingSession: (id: string) => void
+  onDeleteSession: (kind: 'text' | 'manual' | 'training', id: string) => void
   showAnkiBackfill: boolean
   jlptLevel: JlptLevel
   onLevelChange: (level: JlptLevel) => void
@@ -102,6 +112,7 @@ export function AppSidebar({
   onOpenSettings,
   onRestoreTextSession,
   onRestoreManualSession,
+  onRestoreTrainingSession,
   onDeleteSession,
   showAnkiBackfill,
   jlptLevel,
@@ -146,6 +157,12 @@ export function AppSidebar({
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
       <div className={styles.header}>
+        {!collapsed && (
+          <div className={styles.brand}>
+            <div className={styles.brandMark}>Japanese Vocab</div>
+            <div className={styles.brandSubline}>Extract, refine, send to Anki</div>
+          </div>
+        )}
         <div className={styles.toolbar}>
           <button
             type="button"
@@ -153,7 +170,7 @@ export function AppSidebar({
             title="Settings"
             onClick={onOpenSettings}
           >
-            ⚙
+            <IconSettings className={styles.iconSvg} stroke={1.8} />
           </button>
           <button
             type="button"
@@ -161,7 +178,7 @@ export function AppSidebar({
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             onClick={() => onCollapsedChange(!collapsed)}
           >
-            {collapsed ? '›' : '‹'}
+            {collapsed ? <IconChevronRight className={styles.iconSvg} stroke={1.8} /> : <IconChevronLeft className={styles.iconSvg} stroke={1.8} />}
           </button>
         </div>
       </div>
@@ -242,12 +259,18 @@ export function AppSidebar({
                     className={styles.entryMain}
                     onClick={() => {
                       if (entry.kind === 'text') onRestoreTextSession(entry.id)
-                      else onRestoreManualSession(entry.id)
+                      else if (entry.kind === 'manual') onRestoreManualSession(entry.id)
+                      else onRestoreTrainingSession(entry.id)
                     }}
                   >
                     <div className={styles.entryTitle}>{entry.title}</div>
                     <div className={styles.entryMeta}>
-                      {entry.kind === 'text' ? 'Text vocab' : 'Manual vocab'} · {entry.session.words.length} words · {dateFormatter.format(entry.updatedAt)}
+                      {entry.kind === 'text'
+                        ? `Text vocab · ${entry.session.words.length} words`
+                        : entry.kind === 'manual'
+                          ? `Manual vocab · ${entry.session.words.length} words`
+                          : `Training · ${entry.session.attempts.length}/${entry.session.promptCount || entry.session.attempts.length} answered`
+                      } · {dateFormatter.format(entry.updatedAt)}
                     </div>
                   </button>
                   <button
@@ -256,7 +279,7 @@ export function AppSidebar({
                     title="Delete session"
                     onClick={() => onDeleteSession(entry.kind, entry.id)}
                   >
-                    ×
+                    <IconTrash className={styles.deleteIcon} stroke={1.8} />
                   </button>
                 </div>
               ))}
@@ -271,7 +294,7 @@ export function AppSidebar({
           className={({ isActive }) => `${styles.footerLink} ${isActive ? styles.activeFooterLink : ''}`}
           title="Usage stats"
         >
-          <span className={styles.footerIcon}>Σ</span>
+          <span className={styles.footerIcon}><IconChartBar className={styles.footerIconSvg} stroke={1.8} /></span>
           {!collapsed && <span>Usage stats</span>}
         </NavLink>
         {showAnkiBackfill && (
@@ -280,7 +303,7 @@ export function AppSidebar({
             className={({ isActive }) => `${styles.footerLink} ${isActive ? styles.activeFooterLink : ''}`}
             title="Anki Backfill"
           >
-            <span className={styles.footerIcon}>A</span>
+            <span className={styles.footerIcon}><IconCards className={styles.footerIconSvg} stroke={1.8} /></span>
             {!collapsed && <span>Anki Backfill</span>}
           </NavLink>
         )}

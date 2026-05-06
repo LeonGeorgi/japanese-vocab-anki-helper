@@ -1,7 +1,14 @@
 import { atom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
-import { KEY_MANUAL_SESSION, KEY_MANUAL_SESSION_HISTORY, KEY_SESSION, KEY_TEXT_SESSION_HISTORY } from '../constants'
-import type { Example, Word } from '../types'
+import {
+  KEY_MANUAL_SESSION,
+  KEY_MANUAL_SESSION_HISTORY,
+  KEY_SESSION,
+  KEY_TEXT_SESSION_HISTORY,
+  KEY_TRAINING_SESSION,
+  KEY_TRAINING_SESSION_HISTORY,
+} from '../constants'
+import type { Example, TrainingAttempt, TrainingPrompt, Word } from '../types'
 
 type StateUpdate<T> = T | ((prev: T) => T)
 
@@ -54,13 +61,34 @@ export interface ManualVocabHistoryEntry {
   session: ManualVocabSession
 }
 
+export interface TrainingSession {
+  id: string
+  createdAt: number
+  updatedAt: number
+  title: string
+  queue: TrainingPrompt[]
+  currentPrompt: TrainingPrompt | null
+  attempts: TrainingAttempt[]
+  promptCount: number
+}
+
+export interface TrainingHistoryEntry {
+  id: string
+  title: string
+  createdAt: number
+  updatedAt: number
+  session: TrainingSession
+}
+
 const storageOptions = { getOnInit: true }
 const maxHistoryEntries = 20
 
 const storedTextVocabSessionAtom = atomWithStorage<TextVocabSession>(KEY_SESSION, createEmptyTextVocabSession(), undefined, storageOptions)
 const storedManualVocabSessionAtom = atomWithStorage<ManualVocabSession>(KEY_MANUAL_SESSION, createEmptyManualVocabSession(), undefined, storageOptions)
+const storedTrainingSessionAtom = atomWithStorage<TrainingSession>(KEY_TRAINING_SESSION, createEmptyTrainingSession(), undefined, storageOptions)
 export const textVocabHistoryAtom = atomWithStorage<TextVocabHistoryEntry[]>(KEY_TEXT_SESSION_HISTORY, [], undefined, storageOptions)
 export const manualVocabHistoryAtom = atomWithStorage<ManualVocabHistoryEntry[]>(KEY_MANUAL_SESSION_HISTORY, [], undefined, storageOptions)
+export const trainingHistoryAtom = atomWithStorage<TrainingHistoryEntry[]>(KEY_TRAINING_SESSION_HISTORY, [], undefined, storageOptions)
 
 export const textExampleStatusAtom = atom<Record<string, ExampleStatus>>({})
 export const manualExampleStatusAtom = atom<Record<string, ExampleStatus>>({})
@@ -149,6 +177,45 @@ export const setManualVocabSessionTitleAtom = atom(null, (_get, set, title: stri
   set(manualVocabSessionAtom, prev => ({ ...prev, title: value }))
 })
 
+export const trainingSessionAtom = atom(
+  get => normalizeTrainingSession(get(storedTrainingSessionAtom)),
+  (get, set, update: StateUpdate<TrainingSession>) => {
+    const prev = normalizeTrainingSession(get(storedTrainingSessionAtom))
+    const nextValue = typeof update === 'function' ? update(prev) : update
+    const next = normalizeTrainingSession(nextValue, prev)
+
+    set(storedTrainingSessionAtom, next)
+    const entry = createTrainingHistoryEntry(next)
+    if (entry) set(trainingHistoryAtom, historyWithEntry(get(trainingHistoryAtom), entry))
+  },
+)
+
+export const restoreTrainingHistoryAtom = atom(null, (get, set, id: string) => {
+  const entry = get(trainingHistoryAtom).find(item => item.id === id)
+  if (!entry) return
+  set(storedTrainingSessionAtom, normalizeTrainingSession({ ...entry.session, id: entry.session.id ?? entry.id }))
+})
+
+export const deleteTrainingHistoryEntryAtom = atom(null, (get, set, id: string) => {
+  set(trainingHistoryAtom, get(trainingHistoryAtom).filter(entry => entry.id !== id))
+  if (get(trainingSessionAtom).id === id) {
+    set(storedTrainingSessionAtom, createEmptyTrainingSession())
+  }
+})
+
+export const resetTrainingAtom = atom(null, (get, set) => {
+  const entry = createTrainingHistoryEntry(get(trainingSessionAtom))
+  if (entry) set(trainingHistoryAtom, historyWithEntry(get(trainingHistoryAtom), entry))
+  const next = createEmptyTrainingSession()
+  set(storedTrainingSessionAtom, next)
+  return next.id
+})
+
+export const setTrainingSessionTitleAtom = atom(null, (_get, set, title: string) => {
+  const value = title.trimStart()
+  set(trainingSessionAtom, prev => ({ ...prev, title: value }))
+})
+
 export function createEmptyTextVocabSession(): TextVocabSession {
   const now = Date.now()
   return {
@@ -219,6 +286,41 @@ function createManualSessionId(): string {
   return `manual_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 }
 
+export function createEmptyTrainingSession(): TrainingSession {
+  const now = Date.now()
+  return {
+    id: createTrainingSessionId(),
+    createdAt: now,
+    updatedAt: now,
+    title: '',
+    queue: [],
+    currentPrompt: null,
+    attempts: [],
+    promptCount: 0,
+  }
+}
+
+function normalizeTrainingSession(
+  session: TrainingSession,
+  previous?: TrainingSession,
+): TrainingSession {
+  const now = Date.now()
+  return {
+    id: session.id ?? previous?.id ?? createTrainingSessionId(),
+    createdAt: session.createdAt ?? previous?.createdAt ?? now,
+    updatedAt: previous && session !== previous ? now : session.updatedAt ?? now,
+    title: session.title ?? previous?.title ?? '',
+    queue: session.queue ?? previous?.queue ?? [],
+    currentPrompt: session.currentPrompt === undefined ? previous?.currentPrompt ?? null : session.currentPrompt,
+    attempts: session.attempts ?? previous?.attempts ?? [],
+    promptCount: session.promptCount ?? previous?.promptCount ?? 0,
+  }
+}
+
+function createTrainingSessionId(): string {
+  return `training_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+}
+
 function createTextVocabHistoryEntry(session: TextVocabSession): TextVocabHistoryEntry | null {
   if (isEmptyTextVocabSession(session)) return null
   return {
@@ -238,6 +340,10 @@ function historyWithEntry(
   history: ManualVocabHistoryEntry[],
   entry: ManualVocabHistoryEntry,
 ): ManualVocabHistoryEntry[]
+function historyWithEntry(
+  history: TrainingHistoryEntry[],
+  entry: TrainingHistoryEntry,
+): TrainingHistoryEntry[]
 function historyWithEntry<T extends { id: string }>(
   history: T[],
   entry: T,
@@ -282,6 +388,30 @@ function manualVocabHistoryTitle(session: ManualVocabSession): string {
 
   const words = session.words.slice(0, 4).map(word => word.word).join(', ')
   return words || 'Untitled manual session'
+}
+
+function createTrainingHistoryEntry(session: TrainingSession): TrainingHistoryEntry | null {
+  if (isEmptyTrainingSession(session)) return null
+  return {
+    id: session.id,
+    title: trainingHistoryTitle(session),
+    createdAt: session.createdAt,
+    updatedAt: session.updatedAt,
+    session,
+  }
+}
+
+function isEmptyTrainingSession(session: TrainingSession): boolean {
+  return session.promptCount === 0 && session.attempts.length === 0 && !session.currentPrompt
+}
+
+function trainingHistoryTitle(session: TrainingSession): string {
+  if (session.title.trim()) return session.title.trim().slice(0, 72)
+  const currentWord = session.currentPrompt?.word?.trim()
+  if (currentWord) return `Training: ${currentWord}`.slice(0, 72)
+  const firstAttemptWord = session.attempts[0]?.prompt.word?.trim()
+  if (firstAttemptWord) return `Training: ${firstAttemptWord}`.slice(0, 72)
+  return 'Untitled training session'
 }
 
 export function toStoredExamples(examples: Record<string, Example>): Record<string, StoredExample> {

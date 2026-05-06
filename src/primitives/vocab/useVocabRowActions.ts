@@ -29,26 +29,32 @@ export function useVocabRowActions({
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [feedbackText, setFeedbackText] = useState('')
   const [ankiOpen, setAnkiOpen] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [sentenceMenuOpen, setSentenceMenuOpen] = useState(false)
+  const [wordMenuOpen, setWordMenuOpen] = useState(false)
   const [splitLoading, setSplitLoading] = useState(false)
   const [kanjiLoading, setKanjiLoading] = useState(false)
   const [kanjiError, setKanjiError] = useState<string | null>(null)
   const [quickAddLoading, setQuickAddLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const sentenceMenuRef = useRef<HTMLDivElement>(null)
+  const wordMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (feedbackOpen) inputRef.current?.focus()
   }, [feedbackOpen])
 
   useEffect(() => {
-    if (!menuOpen) return
+    if (!sentenceMenuOpen && !wordMenuOpen) return
     function onMouseDown(e: MouseEvent) {
-      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false)
+      const target = e.target as Node
+      const insideSentenceMenu = sentenceMenuRef.current?.contains(target)
+      const insideWordMenu = wordMenuRef.current?.contains(target)
+      if (!insideSentenceMenu) setSentenceMenuOpen(false)
+      if (!insideWordMenu) setWordMenuOpen(false)
     }
     document.addEventListener('mousedown', onMouseDown)
     return () => document.removeEventListener('mousedown', onMouseDown)
-  }, [menuOpen])
+  }, [sentenceMenuOpen, wordMenuOpen])
 
   function submitFeedback() {
     const text = feedbackText.trim()
@@ -59,7 +65,8 @@ export function useVocabRowActions({
   }
 
   async function split() {
-    setMenuOpen(false)
+    setSentenceMenuOpen(false)
+    setWordMenuOpen(false)
     setSplitLoading(true)
     try {
       await onSplit(word.word)
@@ -100,9 +107,12 @@ export function useVocabRowActions({
     feedbackText,
     setFeedbackText,
     inputRef,
-    menuOpen,
-    setMenuOpen,
-    menuRef,
+    sentenceMenuOpen,
+    setSentenceMenuOpen,
+    sentenceMenuRef,
+    wordMenuOpen,
+    setWordMenuOpen,
+    wordMenuRef,
     ankiOpen,
     setAnkiOpen,
     splitLoading,

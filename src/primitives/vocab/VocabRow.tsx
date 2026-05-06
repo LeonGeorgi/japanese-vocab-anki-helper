@@ -1,5 +1,12 @@
 import type { Word, Example, GenerateOptions } from '../../types'
 import type { Notification } from '../../hooks/useNotification'
+import {
+  IconCheck,
+  IconCards,
+  IconDotsVertical,
+  IconSend,
+  IconSquareRoundedPlus,
+} from '@tabler/icons-react'
 import { useVocabRowActions } from './useVocabRowActions'
 import { AnkiModal } from '../anki/AnkiModal'
 import styles from './VocabRow.module.css'
@@ -25,9 +32,12 @@ export function VocabRow({ word, example, apiKey, nativeLanguage, inAnki, onGene
     feedbackText,
     setFeedbackText,
     inputRef,
-    menuOpen,
-    setMenuOpen,
-    menuRef,
+    sentenceMenuOpen,
+    setSentenceMenuOpen,
+    sentenceMenuRef,
+    wordMenuOpen,
+    setWordMenuOpen,
+    wordMenuRef,
     ankiOpen,
     setAnkiOpen,
     splitLoading,
@@ -55,7 +65,7 @@ export function VocabRow({ word, example, apiKey, nativeLanguage, inAnki, onGene
       <button
         className={styles.menuItem}
         disabled={disabled}
-        onClick={() => { setMenuOpen(false); action() }}
+        onClick={() => { setSentenceMenuOpen(false); setWordMenuOpen(false); action() }}
       >
         {label}
       </button>
@@ -68,17 +78,35 @@ export function VocabRow({ word, example, apiKey, nativeLanguage, inAnki, onGene
     <tr className={`${styles.row} ${inAnki ? styles.inAnki : ''}`}>
       <td className={styles.wordCell}>
         <div className={styles.wordMainRow}>
-          <span className={styles.wordText}>{word.word}</span>
-          {word.level && <span className={styles.wordLevel}>{word.level}</span>}
-          <span className={`${styles.ankiBadge} ${inAnki ? styles.inAnkiBadge : ''}`} title={inAnki ? 'In Anki' : 'Not in Anki'}>✓</span>
-          <button
-            className={`${styles.iconButton} ${styles.kanjiButton}`}
-            title="Write word in kanji"
-            onClick={convertToKanji}
-            disabled={kanjiLoading}
-          >
-            {kanjiLoading ? <span className={`spinner ${styles.kanjiSpinner}`} /> : '漢'}
-          </button>
+          <div className={styles.wordLabelGroup}>
+            <span className={styles.wordText}>{word.word}</span>
+            {word.level && <span className={styles.wordLevel}>{word.level}</span>}
+          </div>
+          <div className={styles.wordMeta}>
+            <span className={`${styles.ankiBadge} ${inAnki ? styles.inAnkiBadge : ''}`} title={inAnki ? 'In Anki' : 'Not in Anki'}>
+              <IconCheck className={styles.badgeIcon} stroke={2.4} />
+            </span>
+            <div className={styles.menu} ref={wordMenuRef}>
+              <button
+                className={styles.iconButton}
+                title="Word actions"
+                aria-label="Word actions"
+                onClick={() => setWordMenuOpen(o => !o)}
+              >
+                <IconDotsVertical className={styles.buttonIcon} stroke={1.8} />
+              </button>
+              {wordMenuOpen && (
+                <div className={styles.menuDropdown}>
+                  {menuItem(
+                    kanjiLoading ? 'Converting…' : 'Write in kanji',
+                    convertToKanji,
+                    kanjiLoading,
+                  )}
+                  {menuItem('Split word', split, splitLoading)}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
         {kanjiError && <div className={styles.wordError}>{kanjiError}</div>}
       </td>
@@ -94,20 +122,6 @@ export function VocabRow({ word, example, apiKey, nativeLanguage, inAnki, onGene
                   </button>
                 )}
                 {example?.error && <span className={styles.exampleError}>{example.error}</span>}
-                <div className={styles.menu} ref={menuRef}>
-                  <button
-                    className={styles.iconButton}
-                    title="More actions"
-                    onClick={() => setMenuOpen(o => !o)}
-                  >
-                    ···
-                  </button>
-                  {menuOpen && (
-                    <div className={styles.menuDropdown}>
-                      {menuItem('Split word', split)}
-                    </div>
-                  )}
-                </div>
               </div>
             )}
             {example?.loading && <span className={`spinner ${styles.exampleSpinner}`} />}
@@ -115,18 +129,38 @@ export function VocabRow({ word, example, apiKey, nativeLanguage, inAnki, onGene
               <div className={styles.exampleContent}>
                 <div className={styles.exampleRow}>
                   <span className={styles.exampleSentence}>「{example.sentence}」</span>
-                  <div className={styles.menu} ref={menuRef}>
+                  <div className={styles.actionGroup}>
+                    <button
+                      className={`${styles.iconButton} ${styles.iconButtonPrimary}`}
+                      title="Add to Anki"
+                      aria-label="Add to Anki"
+                      onClick={() => setAnkiOpen(true)}
+                    >
+                      <IconCards className={styles.buttonIcon} stroke={1.8} />
+                    </button>
+                    <button
+                      className={styles.iconButton}
+                      title="Quick add to Anki"
+                      aria-label="Quick add to Anki"
+                      onClick={quickAdd}
+                      disabled={quickAddLoading || inAnki}
+                    >
+                      {quickAddLoading ? <span className={`spinner ${styles.kanjiSpinner}`} /> : <IconSquareRoundedPlus className={styles.buttonIcon} stroke={1.8} />}
+                    </button>
+                  </div>
+                  <div className={styles.menu} ref={sentenceMenuRef}>
                     <button
                       className={styles.iconButton}
                       title="More actions"
-                      onClick={() => setMenuOpen(o => !o)}
+                      aria-label="More actions"
+                      onClick={() => setSentenceMenuOpen(o => !o)}
                     >
-                      ···
+                      <IconDotsVertical className={styles.buttonIcon} stroke={1.8} />
                     </button>
-                    {menuOpen && (
-                      <div className={styles.menuDropdown}>
-                        {nativeLanguage && menuItem(
-                          example.translationLoading ? 'Translating…' : 'Translate',
+                  {sentenceMenuOpen && (
+                    <div className={styles.menuDropdown}>
+                      {nativeLanguage && menuItem(
+                        example.translationLoading ? 'Translating…' : 'Translate',
                           () => onTranslate(word.word),
                           example.translationLoading,
                         )}
@@ -134,25 +168,15 @@ export function VocabRow({ word, example, apiKey, nativeLanguage, inAnki, onGene
                         {menuItem('Feedback…', () => setFeedbackOpen(o => !o))}
                         {menuItem('New example', () => onGenerate(word.word))}
                         <div className={styles.menuDivider} />
-                        {menuItem('Split word', split)}
+                        {menuItem(
+                          kanjiLoading ? 'Converting…' : 'Write in kanji',
+                          convertToKanji,
+                          kanjiLoading,
+                        )}
+                        {menuItem('Split word', split, splitLoading)}
                       </div>
                     )}
                   </div>
-                  <button
-                    className={styles.iconButton}
-                    title="Add to Anki"
-                    onClick={() => setAnkiOpen(true)}
-                  >
-                    ＋
-                  </button>
-                  <button
-                    className={styles.iconButton}
-                    title="Quick add to Anki"
-                    onClick={quickAdd}
-                    disabled={quickAddLoading || inAnki}
-                  >
-                    {quickAddLoading ? <span className={`spinner ${styles.kanjiSpinner}`} /> : '⇥'}
-                  </button>
                 </div>
                 {feedbackOpen && (
                   <form
@@ -177,7 +201,7 @@ export function VocabRow({ word, example, apiKey, nativeLanguage, inAnki, onGene
                       type="submit"
                       disabled={!feedbackText.trim()}
                     >
-                      →
+                      <IconSend className={styles.buttonIcon} stroke={1.8} />
                     </button>
                   </form>
                 )}

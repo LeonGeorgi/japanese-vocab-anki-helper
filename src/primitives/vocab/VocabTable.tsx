@@ -59,37 +59,39 @@ export function VocabTable({ title = 'Vocabulary', words, examples, loading = fa
             )}
           </div>
         </div>
-        <table className={styles.table}>
-          <tbody>
-            {loading && displayedWords.length === 0 && Array.from({ length: 4 }, (_, index) => (
-              <tr key={`skeleton-${index}`} className={styles.skeletonRow}>
-                <td className={styles.skeletonWordCell}>
-                  <div className={styles.skeletonWord} aria-hidden="true" />
-                </td>
-                <td className={styles.skeletonExampleCell}>
-                  <div className={styles.skeletonLine} aria-hidden="true" />
-                  <div className={styles.skeletonLineShort} aria-hidden="true" />
-                </td>
-              </tr>
-            ))}
-            {displayedWords.map((word, i) => (
-              <VocabRow
-                key={i}
-                word={word}
-                example={examples[word.word]}
-                apiKey={apiKey}
-                nativeLanguage={nativeLanguage}
-                inAnki={inAnki.has(word.word)}
-                onGenerate={onGenerate}
-                onTranslate={onTranslate}
-                onSplit={onSplit}
-                onConvertToKanji={onConvertToKanji}
-                onAnkiClose={refresh}
-                onNotify={onNotify}
-              />
-            ))}
-          </tbody>
-        </table>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <tbody>
+              {loading && displayedWords.length === 0 && Array.from({ length: 4 }, (_, index) => (
+                <tr key={`skeleton-${index}`} className={styles.skeletonRow}>
+                  <td className={styles.skeletonWordCell}>
+                    <div className={styles.skeletonWord} aria-hidden="true" />
+                  </td>
+                  <td className={styles.skeletonExampleCell}>
+                    <div className={styles.skeletonLine} aria-hidden="true" />
+                    <div className={styles.skeletonLineShort} aria-hidden="true" />
+                  </td>
+                </tr>
+              ))}
+              {displayedWords.map((word, i) => (
+                <VocabRow
+                  key={i}
+                  word={word}
+                  example={examples[word.word]}
+                  apiKey={apiKey}
+                  nativeLanguage={nativeLanguage}
+                  inAnki={inAnki.has(word.word)}
+                  onGenerate={onGenerate}
+                  onTranslate={onTranslate}
+                  onSplit={onSplit}
+                  onConvertToKanji={onConvertToKanji}
+                  onAnkiClose={refresh}
+                  onNotify={onNotify}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

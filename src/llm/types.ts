@@ -19,6 +19,7 @@ export type LlmFeature =
   | 'generate_example'
   | 'resolve_manual_vocab'
   | 'generate_manual_example'
+  | 'review_training_answer'
 
 export interface TextRequest {
   model: string

@@ -336,3 +336,55 @@ export function generateManualExamplePrompt(
 
   return `${inputLines.join('\n')}\n\n${previousBlock}${revisionInstruction}${simplify ? `\nUse only N5 vocabulary (the most basic, common words possible) for every word except「${word}」itself.` : ''}`
 }
+
+export function reviewTrainingAnswerSystemPrompt(targetLanguage: string) {
+  return `You are evaluating a Japanese learner's attempt to translate a sentence from ${targetLanguage} into Japanese.
+
+Grade the attempt on five separate scales from 1 to 5:
+- accuracy: how well the meaning matches the prompt
+- grammar: correctness of Japanese grammar and conjugation
+- naturalness: how natural the Japanese sounds for a neutral reading of the prompt
+- targetWordUse: how appropriately the required target word is used
+- overall: the overall usefulness of the answer
+
+Be fair to reasonable variations. Do not require the learner to copy the reference sentence exactly.
+If the prompt in ${targetLanguage} does not clearly imply a specific register, tone, or style, do NOT penalize differences such as plain vs. polite style, slightly different phrasing, or other neutral stylistic choices. Only reduce naturalness when the Japanese itself feels awkward, unnatural, or mismatched in a clearly meaningful way.
+
+Return JSON only in this exact shape:
+{
+  "scores": {
+    "accuracy": 1,
+    "grammar": 1,
+    "naturalness": 1,
+    "targetWordUse": 1,
+    "overall": 1
+  },
+  "summary": "one short overall judgment",
+  "strengths": ["short point", "short point"],
+  "improvements": ["short point", "short point"],
+  "betterAnswer": "a natural Japanese answer using the target word"
+}
+
+Rules:
+- Each score must be an integer from 1 to 5.
+- Keep summary under 18 words.
+- Keep strengths and improvements concise.
+- betterAnswer must be a single natural Japanese sentence.
+- Output JSON only, with no markdown fences or extra commentary.`
+}
+
+export function reviewTrainingAnswerPrompt(
+  targetLanguage: string,
+  promptTranslation: string,
+  targetWord: string,
+  definition: string,
+  referenceSentence: string,
+  learnerAnswer: string,
+) {
+  const definitionLine = definition.trim() ? `Target word meaning: ${definition.trim()}\n` : ''
+  return `Target language: ${targetLanguage}
+Prompt translation: ${promptTranslation}
+Target word: ${targetWord}
+${definitionLine}Reference sentence: ${referenceSentence}
+Learner answer: ${learnerAnswer}`
+}

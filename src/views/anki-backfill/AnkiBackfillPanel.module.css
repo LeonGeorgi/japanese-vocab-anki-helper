@@ -1,8 +1,12 @@
 .section {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, var(--surface-gloss), transparent 22%),
+    var(--surface);
+  border: 1px solid oklch(0.43 0.018 70 / 0.14);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  background-clip: padding-box;
 }
 
 .settings {
@@ -18,15 +22,15 @@
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 16px;
+  gap: 10px;
+  margin-top: 18px;
 }
 
 .list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 16px;
+  gap: 10px;
+  margin-top: 18px;
 }
 
 .selectAll {
@@ -41,21 +45,23 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: flex-start;
-  gap: 10px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid oklch(0.43 0.018 70 / 0.12);
+  border-radius: 16px;
+  background: var(--surface-ghost-strong);
+  box-shadow: var(--shadow-soft);
+  background-clip: padding-box;
 }
 
 .done {
-  border-color: #bbf7d0;
-  background: #f0fdf4;
+  border-color: oklch(from var(--accent) l c h / 0.18);
+  background: var(--surface-success);
 }
 
 .error {
-  border-color: rgba(220,38,38,0.2);
-  background: #fef2f2;
+  border-color: oklch(from var(--danger) l c h / 0.18);
+  background: var(--surface-danger);
 }
 
 .body {
@@ -63,16 +69,19 @@
 }
 
 .title {
-  font-size: 14px;
+  font-size: 17px;
+  line-height: 1;
   font-weight: 600;
+  font-family: var(--font-japanese);
   color: var(--text);
 }
 
 .sentence {
-  margin-top: 3px;
+  margin-top: 6px;
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.55;
   color: var(--text-muted);
+  font-family: var(--font-japanese);
 }
 
 .cardError {

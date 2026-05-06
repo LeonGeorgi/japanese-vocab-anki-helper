@@ -1,53 +1,125 @@
 .row {
-  border-top: 1px solid var(--border);
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, background 0.16s;
 }
 
-.row:first-child {
-  border-top: none;
+.row:hover {
+  background: var(--surface-gloss);
 }
 
 .inAnki {
-  opacity: 0.4;
-  background: #e5e7eb;
+  background: var(--existing-row-bg);
 }
 
 .inAnki:hover {
+  background: var(--existing-row-bg-hover);
+}
+
+.inAnki .wordText,
+.inAnki .exampleSentence {
+  color: oklch(from var(--text) l c h / 0.68);
+}
+
+.inAnki .wordLevel,
+.inAnki .exampleTranslation,
+.inAnki .hiddenCount {
+  color: oklch(from var(--text-muted) l c h / 0.72);
+}
+
+.inAnki .iconButton,
+.inAnki .generateButton {
+  opacity: 0.76;
+}
+
+.inAnki .iconButtonPrimary {
+  opacity: 0.82;
+}
+
+.inAnki .wordMeta .iconButton,
+.inAnki .actionGroup,
+.inAnki .exampleRow > .menu,
+.inAnki .feedbackRow {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.16s ease, visibility 0.16s ease;
+}
+
+.inAnki:hover .wordMeta .iconButton,
+.inAnki:hover .actionGroup,
+.inAnki:hover .exampleRow > .menu,
+.inAnki:hover .feedbackRow,
+.inAnki:focus-within .wordMeta .iconButton,
+.inAnki:focus-within .actionGroup,
+.inAnki:focus-within .exampleRow > .menu,
+.inAnki:focus-within .feedbackRow {
   opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .wordCell {
   width: 30%;
-  padding: 12px 16px;
+  padding: 8px 10px;
   vertical-align: middle;
-  white-space: nowrap;
+  border-top: 1px solid oklch(0.43 0.018 70 / 0.12);
 }
 
 .wordMainRow {
   display: flex;
   align-items: center;
   gap: 6px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.wordLabelGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+  white-space: nowrap;
+}
+
+.wordMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .exampleCell {
-  padding: 12px 16px 12px 0;
+  padding: 8px 10px 8px 0;
   vertical-align: middle;
+  border-top: 1px solid oklch(0.43 0.018 70 / 0.12);
+}
+
+.row:first-child .wordCell,
+.row:first-child .exampleCell {
+  border-top: none;
 }
 
 .exampleContent {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .exampleRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+}
+
+.actionGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
 }
 
 .exampleTranslation {
-  font-size: 13px;
+  font-size: 11px;
   color: var(--text-muted);
   line-height: 1.4;
 }
@@ -58,9 +130,9 @@
   border-radius: 999px;
   background: linear-gradient(
     90deg,
-    rgba(203, 213, 225, 0.35) 0%,
-    rgba(148, 163, 184, 0.26) 50%,
-    rgba(203, 213, 225, 0.35) 100%
+    oklch(from var(--slate-300) l c h / 0.35) 0%,
+    oklch(from var(--slate-400) l c h / 0.26) 50%,
+    oklch(from var(--slate-300) l c h / 0.35) 100%
   );
   background-size: 220% 100%;
   animation: translationSkeletonPulse 1.2s ease-in-out infinite;
@@ -69,13 +141,21 @@
 .wordText {
   font-size: 15px;
   font-weight: 500;
+  line-height: 1;
+  font-family: var(--font-japanese);
+  letter-spacing: 0.01em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .wordLevel {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 9px;
+  font-weight: 700;
   color: var(--text-muted);
-  opacity: 0.5;
+  opacity: 0.75;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .ankiBadge {
@@ -85,7 +165,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 1.5px solid var(--border);
+  border: 1.5px solid oklch(0.43 0.018 70 / 0.18);
   font-size: 10px;
   font-weight: 700;
   color: transparent;
@@ -93,56 +173,74 @@
   flex-shrink: 0;
 }
 
+.badgeIcon {
+  width: 10px;
+  height: 10px;
+}
+
 .inAnkiBadge {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: var(--white);
 }
 
 .generateButton {
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  border: 1px solid var(--border);
-  background: none;
-  color: var(--text-muted);
+  height: 24px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid oklch(0.43 0.018 70 / 0.14);
+  background: var(--surface-overlay-soft);
+  color: var(--text);
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
   white-space: nowrap;
+  background-clip: padding-box;
 }
 
 .generateButton:hover {
-  border-color: var(--accent);
+  border-color: oklch(from var(--accent) l c h / 0.22);
   color: var(--accent);
+  background: var(--surface-overlay-strong);
 }
 
 .exampleSentence {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text);
-  line-height: 1.5;
+  line-height: 1.45;
   flex: 1;
+  font-family: var(--font-japanese);
+  letter-spacing: 0.01em;
+}
+
+.buttonIcon {
+  width: 14px;
+  height: 14px;
 }
 
 .iconButton {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  font-size: 14px;
-  border: 1px solid var(--border);
-  background: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  font-size: 11px;
+  border: 1px solid oklch(0.43 0.018 70 / 0.14);
+  background: var(--surface-overlay-soft);
   color: var(--text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.15s, color 0.15s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, transform 0.15s;
+  background-clip: padding-box;
 }
 
 .iconButton:hover:not(:disabled) {
-  border-color: var(--accent);
+  border-color: oklch(from var(--accent) l c h / 0.22);
   color: var(--accent);
+  background: var(--surface-overlay-strong);
+  transform: translateY(-1px);
 }
 
 .iconButton:disabled {
@@ -150,15 +248,16 @@
   cursor: not-allowed;
 }
 
+.iconButtonPrimary {
+  color: var(--accent);
+  border-color: oklch(from var(--accent) l c h / 0.18);
+  background: oklch(from var(--accent) l c h / 0.08);
+}
+
 .iconButtonActive {
   border-color: var(--accent);
   color: var(--accent);
-  background: var(--accent-light);
-}
-
-.kanjiButton {
-  margin-left: 2px;
-  font-size: 13px;
+  background: oklch(from var(--accent) l c h / 0.08);
 }
 
 .kanjiSpinner {
@@ -168,7 +267,7 @@
 
 .wordError {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--danger);
   white-space: normal;
 }
@@ -179,34 +278,36 @@
 
 .menuDropdown {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   right: 0;
   display: flex;
   flex-direction: column;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 4px;
+  background: var(--surface-overlay-solid);
+  border: 1px solid oklch(0.43 0.018 70 / 0.14);
+  border-radius: 16px;
+  padding: 6px;
   box-shadow: var(--shadow-md);
   z-index: 100;
-  min-width: 150px;
+  min-width: 148px;
+  backdrop-filter: blur(12px);
+  background-clip: padding-box;
 }
 
 .menuItem {
-  padding: 6px 10px;
-  font-size: 13px;
-  font-family: inherit;
+  padding: 5px 9px;
+  font-size: 11px;
   text-align: left;
   background: none;
   border: none;
-  border-radius: 5px;
+  border-radius: 10px;
   color: var(--text);
   cursor: pointer;
   white-space: nowrap;
+  font-weight: 600;
 }
 
 .menuItem:hover:not(:disabled) {
-  background: var(--bg);
+  background: oklch(from var(--accent) l c h / 0.08);
 }
 
 .menuItem:disabled {
@@ -222,23 +323,39 @@
 
 .feedbackRow {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .feedbackInput {
-  width: 180px;
-  padding: 4px 8px;
-  font-size: 13px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  width: 160px;
+  padding: 5px 9px;
+  font-size: 11px;
+  border: 1px solid oklch(0.43 0.018 70 / 0.14);
+  border-radius: 999px;
   outline: none;
-  background: var(--bg);
+  background: var(--surface-overlay-hover);
   color: var(--text);
-  font-family: inherit;
+  background-clip: padding-box;
+}
+
+@media (max-width: 720px) {
+  .exampleRow {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .exampleSentence {
+    width: 100%;
+    flex: none;
+  }
+
+  .actionGroup {
+    margin-left: 0;
+  }
 }
 
 .feedbackInput:focus {
-  border-color: var(--accent);
+  border-color: oklch(from var(--accent) l c h / 0.28);
 }
 
 .exampleSpinner {

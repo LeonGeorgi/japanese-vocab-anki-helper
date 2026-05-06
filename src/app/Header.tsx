@@ -9,7 +9,7 @@ interface Props {
     error: string | null
     retry: () => void
   }
-  onNewSession: (kind: 'text' | 'manual') => void
+  onNewSession: (kind: 'text' | 'manual' | 'training') => void
   currentSessionTitle: string | null
   onCurrentSessionTitleChange: (title: string) => void
 }
@@ -36,13 +36,16 @@ export function Header({
     <header className={styles.header}>
       <div className={styles.left}>
         {currentSessionTitle !== null && (
-          <input
-            className={styles.titleInput}
-            type="text"
-            placeholder="Untitled session"
-            value={currentSessionTitle}
-            onChange={e => onCurrentSessionTitleChange(e.target.value)}
-          />
+          <div className={styles.titleBlock}>
+            <div className={styles.kicker}>Study session</div>
+            <input
+              className={styles.titleInput}
+              type="text"
+              placeholder="Untitled session"
+              value={currentSessionTitle}
+              onChange={e => onCurrentSessionTitleChange(e.target.value)}
+            />
+          </div>
         )}
       </div>
       <div className={styles.right}>
@@ -88,6 +91,15 @@ export function Header({
                   }}
                 >
                   Manual vocab
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewSessionOpen(false)
+                    onNewSession('training')
+                  }}
+                >
+                  Training
                 </button>
               </div>
             )}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAtom } from 'jotai'
+import { IconX } from '@tabler/icons-react'
 import { listAvailableLlmModels } from '../api/llm'
 import {
   getLlmProvider,
@@ -22,6 +23,7 @@ import {
   ankiModelAtom,
 } from '../state/ankiAtoms'
 import { llmProviderAtom, llmTextModelAtom, llmVisionModelAtom } from '../state/settingsAtoms'
+import { themePreferenceAtom } from '../state/settingsAtoms'
 import styles from './AppSettingsDialog.module.css'
 
 interface Props {
@@ -47,6 +49,7 @@ export function AppSettingsDialog({ apiKey, onApiKeyChange, onClose }: Props) {
   const [modelsError, setModelsError] = useState<string | null>(null)
   const [page, setPage] = useState<'general' | 'fields'>('general')
   const [provider, setProvider] = useAtom(llmProviderAtom)
+  const [themePreference, setThemePreference] = useAtom(themePreferenceAtom)
   const [textModel, setTextModel] = useAtom(llmTextModelAtom)
   const [visionModel, setVisionModel] = useAtom(llmVisionModelAtom)
   const [deck, setDeck] = useAtom(ankiDeckAtom)
@@ -104,7 +107,9 @@ export function AppSettingsDialog({ apiKey, onApiKeyChange, onClose }: Props) {
       <div className={`modal ${styles.dialog}`} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <span className="modal-title">Settings</span>
-          <button className="modal-close" type="button" onClick={onClose}>✕</button>
+          <button className="modal-close" type="button" onClick={onClose} aria-label="Close dialog">
+            <IconX className="modal-close-icon" stroke={1.9} />
+          </button>
         </div>
 
         <div className={styles.body}>
@@ -128,6 +133,23 @@ export function AppSettingsDialog({ apiKey, onApiKeyChange, onClose }: Props) {
           <div className={`modal-body ${styles.content}`}>
             {page === 'general' && (
               <>
+                <section className={styles.section}>
+                  <div className={styles.sectionTitle}>Appearance</div>
+                  <label className="modal-field">
+                    <span className="modal-label">Theme</span>
+                    <select
+                      className="modal-input"
+                      value={themePreference}
+                      onChange={e => setThemePreference(e.target.value as 'system' | 'light' | 'dark')}
+                    >
+                      <option value="system">System</option>
+                      <option value="light">Light</option>
+                      <option value="dark">Dark</option>
+                    </select>
+                    <span className="modal-field-hint">Uses your operating system theme unless you override it here.</span>
+                  </label>
+                </section>
+
                 <section className={styles.section}>
                   <div className={styles.sectionTitle}>API</div>
                   <label className="modal-field">

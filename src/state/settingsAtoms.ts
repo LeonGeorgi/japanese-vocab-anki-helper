@@ -12,11 +12,13 @@ import {
   KEY_MANUAL_CONTEXT,
   KEY_MANUAL_KEEP_CONTEXT,
   KEY_NATIVE_LANG,
+  KEY_THEME,
 } from '../constants'
 
 const storageOptions = { getOnInit: true }
 const defaultProviderInfo = getLlmProvider(defaultLlmProvider)
 type LlmApiKeys = Record<LlmProviderId, string>
+export type ThemePreference = 'system' | 'light' | 'dark'
 
 function initialLlmApiKeys(): LlmApiKeys {
   if (typeof window === 'undefined') return { anthropic: '', openai: '' }
@@ -46,3 +48,4 @@ export const jlptLevelAtom = atomWithStorage<JlptLevel>(KEY_JLPT_LEVEL, 'N3', un
 export const nativeLanguageAtom = atomWithStorage(KEY_NATIVE_LANG, '', undefined, storageOptions)
 export const manualKeepContextAtom = atomWithStorage<boolean>(KEY_MANUAL_KEEP_CONTEXT, false, undefined, storageOptions)
 export const manualContextAtom = atomWithStorage(KEY_MANUAL_CONTEXT, '', undefined, storageOptions)
+export const themePreferenceAtom = atomWithStorage<ThemePreference>(KEY_THEME, 'system', undefined, storageOptions)

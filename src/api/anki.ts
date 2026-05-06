@@ -76,6 +76,10 @@ export async function findNotesWithEmptyField(deck: string, model: string, field
   })
 }
 
+export async function findNotesByQuery(query: string): Promise<number[]> {
+  return invokeAnki<number[]>('findNotes', { query })
+}
+
 export async function getNotesInfo(noteIds: number[]): Promise<AnkiNoteInfo[]> {
   if (!noteIds.length) return []
   return invokeAnki<AnkiNoteInfo[]>('notesInfo', { notes: noteIds })

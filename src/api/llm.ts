@@ -1,5 +1,5 @@
 import { getDefaultStore } from 'jotai'
-import type { GenerateOptions, JlptLevel, ManualVocabResolution, Word } from '../types'
+import type { GenerateOptions, JlptLevel, ManualVocabResolution, TrainingEvaluation, Word } from '../types'
 import { createLlmClient, type LlmFeature, type LlmModelInfo } from '../llm'
 import { llmProviderAtom, llmTextModelAtom, llmVisionModelAtom } from '../state/settingsAtoms'
 import {
@@ -22,11 +22,13 @@ import {
   generateManualExampleSystemPrompt,
   resolveManualVocabSystemPrompt,
   resolveManualVocabPrompt,
+  reviewTrainingAnswerPrompt,
+  reviewTrainingAnswerSystemPrompt,
   splitWordPrompt,
   translateSentenceSystemPrompt,
   translateSentencePrompt,
 } from './llmPrompts'
-import { parseManualVocabResolution, parseWordLines, stripResponseTag, stripWrappingJapaneseQuotes, stripXmlLikeTags } from './llmParsers'
+import { parseManualVocabResolution, parseTrainingEvaluation, parseWordLines, stripResponseTag, stripWrappingJapaneseQuotes, stripXmlLikeTags } from './llmParsers'
 import { selectExampleContext } from './exampleContext'
 
 function resolveLlmRuntime(apiKey: string) {
@@ -289,4 +291,31 @@ export function generateManualExample(
     generateManualExampleSystemPrompt(word, jlptLevel),
     { wordLength: word.length, meaningLength: meaning?.length ?? 0, contextLength: context?.length ?? 0 },
   ).then(stripResponseTag)
+}
+
+export async function reviewTrainingAnswer(
+  apiKey: string,
+  nativeLanguage: string,
+  promptTranslation: string,
+  targetWord: string,
+  definition: string,
+  referenceSentence: string,
+  learnerAnswer: string,
+): Promise<TrainingEvaluation> {
+  const lang = nativeLanguage || 'English'
+  const raw = await callTextModel(
+    apiKey,
+    'review_training_answer',
+    reviewTrainingAnswerPrompt(lang, promptTranslation, targetWord, definition, referenceSentence, learnerAnswer),
+    512,
+    1024,
+    reviewTrainingAnswerSystemPrompt(lang),
+    {
+      promptLength: promptTranslation.length,
+      wordLength: targetWord.length,
+      referenceLength: referenceSentence.length,
+      answerLength: learnerAnswer.length,
+    },
+  )
+  return parseTrainingEvaluation(raw)
 }

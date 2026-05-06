@@ -153,9 +153,6 @@ export function TranscriptionStep({
           placeholder="Paste or type text here…"
           spellCheck={false}
         />
-        {!imageFile && (
-          <div className={styles.dropHint}>Drop an image here or use Transcribe image</div>
-        )}
       </div>
       {transcribeError && (
         <div className="status-bar error" style={{ marginTop: 12 }}>{transcribeError}</div>

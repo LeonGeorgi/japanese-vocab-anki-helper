@@ -1,4 +1,4 @@
-import type { JlptLevel, ManualVocabOption, ManualVocabResolution, Word } from '../types'
+import type { JlptLevel, ManualVocabOption, ManualVocabResolution, TrainingEvaluation, Word } from '../types'
 import { JLPT_LEVELS } from '../constants'
 
 export function stripWrappingJapaneseQuotes(parts: [string, string, string]): [string, string, string] {
@@ -51,6 +51,12 @@ function extractJsonObject(text: string) {
   return start >= 0 && end > start ? candidate.slice(start, end + 1) : candidate
 }
 
+function clampScore(value: unknown): number {
+  const numeric = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(numeric)) return 3
+  return Math.max(1, Math.min(5, Math.round(numeric)))
+}
+
 function isOption(value: unknown): value is ManualVocabOption {
   if (!value || typeof value !== 'object') return false
   const option = value as Partial<ManualVocabOption>
@@ -85,4 +91,55 @@ export function parseManualVocabResolution(text: string, fallbackWord: string): 
   }
 
   return { status: 'clear', option: { word: fallbackWord, meaning: '' } }
+}
+
+export function parseTrainingEvaluation(text: string): TrainingEvaluation {
+  try {
+    const parsed = JSON.parse(extractJsonObject(text)) as unknown
+    if (!parsed || typeof parsed !== 'object') throw new Error('Invalid evaluation')
+    const data = parsed as {
+      scores?: Record<string, unknown>
+      summary?: unknown
+      strengths?: unknown
+      improvements?: unknown
+      betterAnswer?: unknown
+    }
+
+    const strengths = Array.isArray(data.strengths)
+      ? data.strengths.filter(item => typeof item === 'string').map(item => item.trim()).filter(Boolean).slice(0, 3)
+      : []
+    const improvements = Array.isArray(data.improvements)
+      ? data.improvements.filter(item => typeof item === 'string').map(item => item.trim()).filter(Boolean).slice(0, 3)
+      : []
+
+    return {
+      scores: {
+        accuracy: clampScore(data.scores?.accuracy),
+        grammar: clampScore(data.scores?.grammar),
+        naturalness: clampScore(data.scores?.naturalness),
+        targetWordUse: clampScore(data.scores?.targetWordUse),
+        overall: clampScore(data.scores?.overall),
+      },
+      summary: typeof data.summary === 'string' && data.summary.trim() ? data.summary.trim() : 'Reasonable attempt.',
+      strengths,
+      improvements,
+      betterAnswer: typeof data.betterAnswer === 'string' && data.betterAnswer.trim()
+        ? data.betterAnswer.trim()
+        : '',
+    }
+  } catch {
+    return {
+      scores: {
+        accuracy: 3,
+        grammar: 3,
+        naturalness: 3,
+        targetWordUse: 3,
+        overall: 3,
+      },
+      summary: 'Evaluation could not be parsed cleanly.',
+      strengths: [],
+      improvements: ['Try again for a clearer AI evaluation.'],
+      betterAnswer: '',
+    }
+  }
 }

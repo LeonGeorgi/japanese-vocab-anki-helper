@@ -2,17 +2,10 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 28px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: var(--bg);
-  padding-top: 14px;
-  padding-bottom: 12px;
-  margin-top: -14px;
-  border-bottom: 1px solid rgba(229, 231, 235, 0.75);
-  min-height: 54px;
+  gap: 18px;
+  margin-bottom: 20px;
+  padding-bottom: 2px;
+  min-height: 0;
 }
 
 .right {
@@ -26,68 +19,85 @@
   flex: 1;
 }
 
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kicker {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text-soft);
+}
+
 .titleInput {
-  height: 38px;
+  height: 40px;
   width: 100%;
-  max-width: 420px;
-  padding: 0 2px;
+  max-width: 520px;
+  padding: 0;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 0;
   background: transparent;
   color: var(--text);
-  font: inherit;
-  font-size: 24px;
-  font-weight: 650;
-  line-height: 1.1;
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 2vw, 2.2rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
   outline: none;
-  transition: border-color 0.15s, background 0.15s;
+  border-bottom: 1px solid oklch(0.43 0.018 70 / 0.12);
+  transition: border-color 0.16s, color 0.16s;
 }
 
 .titleInput::placeholder {
-  color: var(--text-muted);
+  color: oklch(from var(--text-muted) l c h / 0.72);
 }
 
 .titleInput:focus {
-  border-color: var(--accent);
-  background: var(--surface);
+  border-color: oklch(from var(--accent) l c h / 0.28);
 }
 
 .controls {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
   justify-content: flex-end;
   flex-wrap: wrap;
 }
 
 .ankiConnection {
-  height: 30px;
+  min-height: 32px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 0 5px 0 9px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
+  padding: 0 4px 0 10px;
+  border: 1px solid oklch(0.43 0.018 70 / 0.14);
+  border-radius: 999px;
+  background: var(--surface-overlay-soft);
   color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 700;
   white-space: nowrap;
+  box-shadow: var(--shadow-soft);
+  background-clip: padding-box;
 }
 
 .ankiConnectionDot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: #d1d5db;
+  background: var(--neutral-300);
 }
 
 .connected {
-  background: #22c55e;
+  background: oklch(0.52 0.08 158);
 }
 
 .checking {
-  background: #f59e0b;
+  background: var(--warning);
 }
 
 .offline {
@@ -96,20 +106,22 @@
 
 .ankiRetryButton {
   height: 22px;
-  padding: 0 7px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  background: var(--bg);
+  padding: 0 8px;
+  border: 1px solid oklch(0.43 0.018 70 / 0.12);
+  border-radius: 999px;
+  background: var(--surface-overlay-active);
   color: var(--text-muted);
-  font: inherit;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.2;
   cursor: pointer;
+  transition: border-color 0.16s, color 0.16s, background 0.16s;
+  background-clip: padding-box;
 }
 
 .ankiRetryButton:hover:not(:disabled) {
-  border-color: var(--accent);
+  border-color: oklch(from var(--accent) l c h / 0.22);
   color: var(--accent);
+  background: var(--white);
 }
 
 .ankiRetryButton:disabled {
@@ -118,21 +130,25 @@
 }
 
 .resetButton {
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  border: 1px solid var(--border);
-  background: none;
-  color: var(--text-muted);
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--white);
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition: background 0.16s, transform 0.16s, box-shadow 0.16s;
+  box-shadow: 0 14px 24px oklch(from var(--accent) l c h / 0.2);
+  background-clip: padding-box;
 }
 
 .resetButton:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--accent-hover);
+  transform: translateY(-1px);
 }
 
 .newSessionMenu {
@@ -144,30 +160,32 @@
   top: calc(100% + 6px);
   right: 0;
   z-index: 120;
-  min-width: 148px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
+  min-width: 160px;
+  padding: 6px;
+  border: 1px solid oklch(0.43 0.018 70 / 0.14);
+  border-radius: 16px;
+  background: var(--surface-overlay-solid);
   box-shadow: var(--shadow-md);
+  backdrop-filter: blur(14px);
+  background-clip: padding-box;
 }
 
 .newSessionPopover button {
   width: 100%;
-  height: 30px;
-  padding: 0 9px;
+  height: 32px;
+  padding: 0 10px;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
   background: transparent;
   color: var(--text);
-  font: inherit;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 700;
   text-align: left;
   cursor: pointer;
 }
 
 .newSessionPopover button:hover {
-  background: var(--accent-light);
+  background: oklch(from var(--accent) l c h / 0.08);
   color: var(--accent);
 }
 
@@ -189,6 +207,6 @@
 
   .titleInput {
     max-width: none;
-    font-size: 20px;
+    font-size: 1.9rem;
   }
 }

@@ -1,14 +1,18 @@
 .box {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, var(--surface-gloss-strong), transparent 28%),
+    var(--surface);
+  border: 1px solid oklch(0.43 0.018 70 / 0.14);
   border-radius: var(--radius);
   overflow: hidden;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  box-shadow: var(--shadow);
+  background-clip: padding-box;
 }
 
 .dragOver {
-  border-color: var(--accent);
-  background: var(--accent-light);
+  border-color: oklch(from var(--accent) l c h / 0.24);
+  background: linear-gradient(180deg, var(--surface-gloss-strong), oklch(from var(--accent) l c h / 0.06));
 }
 
 .toolbar {
@@ -16,9 +20,9 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, var(--surface), var(--bg));
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid oklch(0.43 0.018 70 / 0.12);
+  background: linear-gradient(180deg, var(--surface-header-start), var(--surface-header-end));
   flex-wrap: wrap;
 }
 
@@ -35,23 +39,25 @@
 }
 
 .attachmentTitle {
-  font-size: 13px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 0.95;
   font-weight: 600;
   color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .attachmentMeta {
-  margin-top: 2px;
-  font-size: 12px;
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   color: var(--text-muted);
 }
 
 .toolbarActions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -61,52 +67,58 @@
 }
 
 .previewImg {
-  width: 112px;
-  height: 78px;
+  width: 96px;
+  height: 68px;
   object-fit: contain;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface);
+  border-radius: 14px;
+  border: 1px solid oklch(0.43 0.018 70 / 0.12);
+  background: var(--surface-overlay-active);
   display: block;
   box-shadow: var(--shadow);
   flex: 0 0 auto;
+  background-clip: padding-box;
 }
 
 .emptyPreview {
-  width: 54px;
-  height: 54px;
-  border: 1px dashed var(--border);
-  border-radius: 8px;
+  width: 48px;
+  height: 48px;
+  border: 1px dashed oklch(0.43 0.018 70 / 0.22);
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  background: var(--surface);
-  font-size: 11px;
-  font-weight: 600;
+  background: var(--surface-gloss);
+  font-size: 9px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.18em;
   flex: 0 0 auto;
+  background-clip: padding-box;
 }
 
 .text {
   width: 100%;
-  padding: 14px 16px;
-  font-size: 15px;
-  line-height: 1.65;
+  min-height: 160px;
+  padding: 14px 14px 16px;
+  font-size: 14px;
+  line-height: 1.55;
   color: var(--text);
   background: transparent;
   border: none;
   outline: none;
   resize: vertical;
-  font-family: inherit;
+  font-family: var(--font-japanese);
   display: block;
 }
 
 .dropHint {
-  padding: 0 16px 12px;
-  color: var(--text-muted);
-  font-size: 12px;
+  padding: 0 14px 12px;
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
 @media (max-width: 560px) {

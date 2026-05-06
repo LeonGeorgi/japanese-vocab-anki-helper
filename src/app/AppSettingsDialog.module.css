@@ -42,7 +42,7 @@
 
 .activeNavButton {
   background: var(--accent-light);
-  border-color: rgba(37,99,235,0.2);
+  border-color: oklch(from var(--accent) l c h / 0.2);
   color: var(--accent);
 }
 
@@ -98,9 +98,9 @@
   width: 100%;
   height: 34px;
   padding: 0 12px;
-  border: 1px solid rgba(220,38,38,0.22);
+  border: 1px solid oklch(from var(--danger) l c h / 0.22);
   border-radius: 7px;
-  background: #fff7f7;
+  background: var(--surface-danger-soft);
   color: var(--danger);
   font: inherit;
   font-size: 13px;
@@ -110,8 +110,8 @@
 }
 
 .resetMappingButton:hover:not(:disabled) {
-  border-color: rgba(220,38,38,0.38);
-  background: #fef2f2;
+  border-color: oklch(from var(--danger) l c h / 0.38);
+  background: var(--surface-danger-soft-hover);
 }
 
 .resetMappingButton:disabled {
@@ -144,11 +144,11 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #d1d5db;
+  background: var(--neutral-300);
 }
 
 .statusSet {
-  background: #22c55e;
+  background: var(--success);
 }
 
 .pricingLink {

@@ -27,3 +27,34 @@ export interface ManualVocabOption {
 export type ManualVocabResolution =
   | { status: 'clear'; option: ManualVocabOption }
   | { status: 'ambiguous'; options: ManualVocabOption[] }
+
+export interface TrainingPrompt {
+  noteId: number
+  word: string
+  definition: string
+  promptTranslation: string
+  referenceSentence: string
+}
+
+export interface TrainingEvaluationScores {
+  accuracy: number
+  grammar: number
+  naturalness: number
+  targetWordUse: number
+  overall: number
+}
+
+export interface TrainingEvaluation {
+  scores: TrainingEvaluationScores
+  summary: string
+  strengths: string[]
+  improvements: string[]
+  betterAnswer: string
+}
+
+export interface TrainingAttempt {
+  prompt: TrainingPrompt
+  answer: string
+  evaluation: TrainingEvaluation
+  answeredAt: number
+}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAtom, useSetAtom } from 'jotai'
 import { createPortal } from 'react-dom'
+import { IconExternalLink, IconRefresh, IconX } from '@tabler/icons-react'
 import { addNote, storeMediaFileData } from '../../api/anki'
 import { generateAnkiFields, type GeneratedAnkiFields } from '../../api/ankiCard'
 import { fieldMappingForModelFields, type AnkiFieldMapping, type AnkiFieldMappingValue } from '../../api/ankiNoteFields'
@@ -124,7 +125,9 @@ export function AnkiModal({ apiKey, word, sentence, translation, nativeLanguage,
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <span className="modal-title">Add to Anki</span>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose} aria-label="Close dialog">
+            <IconX className="modal-close-icon" stroke={1.9} />
+          </button>
         </div>
         <div className="modal-body">
           <div className="modal-row-2">
@@ -182,7 +185,10 @@ export function AnkiModal({ apiKey, word, sentence, translation, nativeLanguage,
                 href={googleImagesUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-              >Search Google Images ↗</a>
+              >
+                Search Google Images
+                <IconExternalLink className="btn-inline-icon" stroke={1.8} />
+              </a>
             </div>
             <div
               className={`paste-area ${pastedImage ? 'has-image' : ''}`}
@@ -192,7 +198,9 @@ export function AnkiModal({ apiKey, word, sentence, translation, nativeLanguage,
               {pastedImage ? (
                 <>
                   <img src={pastedImage} alt="pasted" className="paste-preview" />
-                  <button className="paste-clear" onClick={() => setPastedImage(null)}>✕</button>
+                  <button className="paste-clear" onClick={() => setPastedImage(null)} aria-label="Clear pasted image">
+                    <IconX className="paste-clear-icon" stroke={1.9} />
+                  </button>
                 </>
               ) : (
                 <span className="paste-hint">Paste image here (Ctrl+V / ⌘V)</span>
@@ -210,7 +218,8 @@ export function AnkiModal({ apiKey, word, sentence, translation, nativeLanguage,
             disabled={fieldsLoading}
             title="Regenerate furigana and definition"
           >
-            ↺ Regenerate
+            <IconRefresh className="btn-inline-icon" stroke={1.8} />
+            Regenerate
           </button>
           <div className="modal-footer-right">
             <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
