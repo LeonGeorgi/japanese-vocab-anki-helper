@@ -9,7 +9,7 @@ interface Props {
     error: string | null
     retry: () => void
   }
-  onNewSession: (kind: 'text' | 'manual' | 'training') => void
+  onNewSession: (kind: 'text' | 'manual' | 'drafting' | 'training') => void
   currentSessionTitle: string | null
   onCurrentSessionTitleChange: (title: string) => void
 }
@@ -91,6 +91,15 @@ export function Header({
                   }}
                 >
                   Manual vocab
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewSessionOpen(false)
+                    onNewSession('drafting')
+                  }}
+                >
+                  Drafting
                 </button>
                 <button
                   type="button"

@@ -4,6 +4,7 @@ import { recordLlmUsage } from '../usageTracker'
 const ANTHROPIC_API = 'https://api.anthropic.com/v1'
 const ANTHROPIC_VERSION = '2023-06-01'
 const ANTHROPIC_BROWSER_HEADER = 'anthropic-dangerous-direct-browser-access'
+const MIN_THINKING_BUDGET_TOKENS = 1024
 
 function buildHeaders(apiKey: string, withJsonContent = true) {
   return {
@@ -59,6 +60,11 @@ function normalizeLabel(id: string, displayName?: string) {
   return id
 }
 
+function normalizeThinkingBudget(thinkingTokens?: number) {
+  if (!thinkingTokens || thinkingTokens <= 0) return 0
+  return Math.max(MIN_THINKING_BUDGET_TOKENS, thinkingTokens)
+}
+
 async function fetchModelList(apiKey: string): Promise<LlmModelInfo[]> {
   const response = await fetch(`${ANTHROPIC_API}/models`, {
     method: 'GET',
@@ -88,14 +94,15 @@ function createAnthropicClient(apiKey: string) {
     },
 
     async completeText(req: TextRequest) {
+      const thinkingBudget = normalizeThinkingBudget(req.thinkingTokens)
       const response = await fetch(`${ANTHROPIC_API}/messages`, {
         method: 'POST',
         headers: buildHeaders(apiKey),
         body: JSON.stringify({
           model: req.model,
-          max_tokens: (req.thinkingTokens ?? 0) + req.maxTokens,
-          thinking: req.thinkingTokens && req.thinkingTokens > 0
-            ? { type: 'enabled', budget_tokens: req.thinkingTokens }
+          max_tokens: thinkingBudget + req.maxTokens,
+          thinking: thinkingBudget > 0
+            ? { type: 'enabled', budget_tokens: thinkingBudget }
             : undefined,
           system: req.system,
           messages: [{ role: 'user', content: req.prompt }],

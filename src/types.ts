@@ -1,4 +1,7 @@
 export type JlptLevel = 'N5' | 'N4' | 'N3' | 'N2' | 'N1'
+export type EasyWordFilterLevel = 0 | 1 | 2 | 3 | 4
+
+export type DraftingAnnotationSeverity = 'warning' | 'error'
 
 export interface Word {
   word: string
@@ -57,4 +60,22 @@ export interface TrainingAttempt {
   answer: string
   evaluation: TrainingEvaluation
   answeredAt: number
+}
+
+export interface DraftingAnnotation {
+  severity: DraftingAnnotationSeverity
+  reason: string
+  suggestion: string
+  quote: string
+  occurrence: number
+  sentenceIndex: number
+  startOffset: number
+  endOffset: number
+}
+
+export interface DraftingFeedback {
+  summary: string
+  strengths: string[]
+  improvements: string[]
+  annotations: DraftingAnnotation[]
 }

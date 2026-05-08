@@ -1,4 +1,5 @@
-import type { JlptLevel, ManualVocabOption, ManualVocabResolution, TrainingEvaluation, Word } from '../types'
+import type { DraftingFeedback, JlptLevel, ManualVocabOption, ManualVocabResolution, TrainingEvaluation, Word } from '../types'
+import type { DraftingAnchorAnnotation } from './draftingFeedback'
 import { JLPT_LEVELS } from '../constants'
 
 export function stripWrappingJapaneseQuotes(parts: [string, string, string]): [string, string, string] {
@@ -141,5 +142,90 @@ export function parseTrainingEvaluation(text: string): TrainingEvaluation {
       improvements: ['Try again for a clearer AI evaluation.'],
       betterAnswer: '',
     }
+  }
+}
+
+function clampNonNegativeInteger(value: unknown): number | null {
+  const numeric = typeof value === 'number' ? value : Number(value)
+  if (!Number.isInteger(numeric) || numeric < 0) return null
+  return numeric
+}
+
+function sanitizeDraftingAnnotations(value: unknown): DraftingAnchorAnnotation[] {
+  if (!Array.isArray(value)) return []
+
+  const parsed: DraftingAnchorAnnotation[] = []
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue
+    const annotation = item as Record<string, unknown>
+    const occurrence = clampNonNegativeInteger(annotation.occurrence)
+    const sentenceIndex = clampNonNegativeInteger(annotation.sentenceIndex)
+    const severity = annotation.severity
+    const quote = typeof annotation.quote === 'string' ? annotation.quote : ''
+    const reason = typeof annotation.reason === 'string' ? annotation.reason.trim() : ''
+    const suggestion = typeof annotation.suggestion === 'string' ? annotation.suggestion.trim() : ''
+
+    if (!quote) continue
+    if (occurrence === null || occurrence <= 0) continue
+    if (sentenceIndex === null) continue
+    if (severity !== 'warning' && severity !== 'error') continue
+    if (!reason) continue
+
+    parsed.push({
+      severity,
+      quote,
+      occurrence,
+      sentenceIndex,
+      reason,
+      suggestion,
+    })
+  }
+
+  return parsed
+}
+
+export function parseDraftingFeedback(text: string): (Omit<DraftingFeedback, 'annotations'> & { annotations: DraftingAnchorAnnotation[] }) | null {
+  try {
+    const parsed = JSON.parse(extractJsonObject(text)) as unknown
+    if (!parsed || typeof parsed !== 'object') throw new Error('Invalid drafting feedback')
+    const data = parsed as {
+      summary?: unknown
+      strengths?: unknown
+      improvements?: unknown
+      annotations?: unknown
+    }
+
+    const summary = typeof data.summary === 'string' && data.summary.trim()
+      ? data.summary.trim()
+      : 'Feedback generated.'
+
+    const strengths = Array.isArray(data.strengths)
+      ? data.strengths.filter(item => typeof item === 'string').map(item => item.trim()).filter(Boolean).slice(0, 5)
+      : []
+
+    const improvements = Array.isArray(data.improvements)
+      ? data.improvements.filter(item => typeof item === 'string').map(item => item.trim()).filter(Boolean).slice(0, 5)
+      : []
+
+    return {
+      summary,
+      strengths,
+      improvements,
+      annotations: sanitizeDraftingAnnotations(data.annotations),
+    }
+  } catch {
+    return null
+  }
+}
+
+export function parseDraftingRepairChoice(text: string): number | null {
+  try {
+    const parsed = JSON.parse(extractJsonObject(text)) as unknown
+    if (!parsed || typeof parsed !== 'object') throw new Error('Invalid repair choice')
+    const occurrence = clampNonNegativeInteger((parsed as { occurrence?: unknown }).occurrence)
+    if (occurrence === null || occurrence <= 0) return null
+    return occurrence
+  } catch {
+    return null
   }
 }

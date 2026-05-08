@@ -9,13 +9,14 @@ import {
   IconTrash,
 } from '@tabler/icons-react'
 import { JLPT_LEVELS } from '../constants'
-import type { ManualVocabHistoryEntry, TextVocabHistoryEntry, TrainingHistoryEntry } from '../state/vocabSessionAtoms'
+import type { DraftingHistoryEntry, ManualVocabHistoryEntry, TextVocabHistoryEntry, TrainingHistoryEntry } from '../state/vocabSessionAtoms'
 import type { JlptLevel } from '../types'
 import styles from './AppSidebar.module.css'
 
 type SidebarSessionEntry =
   | (TextVocabHistoryEntry & { kind: 'text' })
   | (ManualVocabHistoryEntry & { kind: 'manual' })
+  | (DraftingHistoryEntry & { kind: 'drafting' })
   | (TrainingHistoryEntry & { kind: 'training' })
 
 interface Props {
@@ -26,8 +27,9 @@ interface Props {
   onOpenSettings: () => void
   onRestoreTextSession: (id: string) => void
   onRestoreManualSession: (id: string) => void
+  onRestoreDraftingSession: (id: string) => void
   onRestoreTrainingSession: (id: string) => void
-  onDeleteSession: (kind: 'text' | 'manual' | 'training', id: string) => void
+  onDeleteSession: (kind: 'text' | 'manual' | 'drafting' | 'training', id: string) => void
   showAnkiBackfill: boolean
   jlptLevel: JlptLevel
   onLevelChange: (level: JlptLevel) => void
@@ -112,6 +114,7 @@ export function AppSidebar({
   onOpenSettings,
   onRestoreTextSession,
   onRestoreManualSession,
+  onRestoreDraftingSession,
   onRestoreTrainingSession,
   onDeleteSession,
   showAnkiBackfill,
@@ -260,6 +263,7 @@ export function AppSidebar({
                     onClick={() => {
                       if (entry.kind === 'text') onRestoreTextSession(entry.id)
                       else if (entry.kind === 'manual') onRestoreManualSession(entry.id)
+                      else if (entry.kind === 'drafting') onRestoreDraftingSession(entry.id)
                       else onRestoreTrainingSession(entry.id)
                     }}
                   >
@@ -269,6 +273,8 @@ export function AppSidebar({
                         ? `Text vocab · ${entry.session.words.length} words`
                         : entry.kind === 'manual'
                           ? `Manual vocab · ${entry.session.words.length} words`
+                          : entry.kind === 'drafting'
+                            ? `Drafting · ${entry.session.draftText.trim().length} chars`
                           : `Training · ${entry.session.attempts.length}/${entry.session.promptCount || entry.session.attempts.length} answered`
                       } · {dateFormatter.format(entry.updatedAt)}
                     </div>

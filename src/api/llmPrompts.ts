@@ -1,5 +1,5 @@
-import type { JlptLevel } from '../types'
-import type { GenerateOptions } from '../types'
+import type { GenerateOptions, JlptLevel, TrainingPrompt } from '../types'
+import type { DraftingAnchorResolutionIssue } from './draftingFeedback'
 import { VOCAB_CEILING } from '../constants'
 
 export const OCR_SYSTEM_PROMPT = 'You are a highly precise Japanese OCR data extraction tool. Your ONLY task is to extract exact Japanese characters from images. You output strictly the raw, original text. You never translate, never summarize, and never include conversational filler.'
@@ -387,4 +387,123 @@ Prompt translation: ${promptTranslation}
 Target word: ${targetWord}
 ${definitionLine}Reference sentence: ${referenceSentence}
 Learner answer: ${learnerAnswer}`
+}
+
+export function reviewDraftingTextSystemPrompt(
+  nativeLanguage: string,
+  jlptLevel: JlptLevel,
+) {
+  return `You are reviewing a Japanese learner's draft.
+
+Judge the writing relative to:
+- the learner's Japanese level: ${jlptLevel}
+- the learner's native language: ${nativeLanguage}
+- the stated writing purpose
+
+Your job is to identify what is strong, what should be improved, and which exact spans in the text deserve highlighting.
+
+Write all human-facing feedback fields in ${nativeLanguage}:
+- summary
+- strengths
+- improvements
+- annotation (reason and suggestion)
+
+Annotation rules:
+- Use "error" only for clearly wrong or meaning-distorting Japanese that should be corrected.
+- Use "warning" for awkward, imprecise, unnatural, or not-purpose-optimal wording.
+- Only annotate spans that are genuinely useful to point out.
+- Each annotation must cover one exact copied substring from the draft.
+- Never overlap annotation ranges.
+- Copy the quote field verbatim from the draft text.
+- sentenceIndex refers to the sentence table provided by the user.
+- occurrence is 1-based within that sentence.
+
+Return JSON only in this exact shape:
+{
+  "summary": "one short overall judgment",
+  "strengths": ["short point", "short point"],
+  "improvements": ["short point", "short point"],
+  "annotations": [
+    {
+      "severity": "warning",
+      "quote": "copied exact text",
+      "occurrence": 1,
+      "sentenceIndex": 0,
+      "reason": "what is not ideal",
+      "suggestion": "how to improve it"
+    }
+  ]
+}
+
+Rules:
+- Output raw JSON only. No markdown, no prose outside JSON.
+- All human-facing feedback text must be in ${nativeLanguage}.
+- Keep summary under 24 words.
+- Return at most 2 strengths and at most 3 improvements.
+- Return at most 8 annotations, prioritizing the most important issues first.
+- Keep strengths and improvements concise.
+- Only annotate spans that can be copied exactly from the draft.
+- Do not normalize or paraphrase the quote field.
+- Every annotation reason must be specific.
+- Every annotation suggestion must be actionable.`
+}
+
+export function reviewDraftingTextPrompt(
+  nativeLanguage: string,
+  jlptLevel: JlptLevel,
+  purposeText: string,
+  draftText: string,
+  sentences: Array<{ sentenceIndex: number; text: string }>,
+) {
+  const purpose = purposeText.trim() || 'No explicit purpose provided.'
+  return `Learner native language: ${nativeLanguage}
+Learner Japanese level: ${jlptLevel}
+Purpose:
+"""
+${purpose}
+"""
+
+Draft text:
+"""
+${draftText}
+"""
+
+Sentence table (JSON, use these sentenceIndex values for annotations):
+${JSON.stringify(sentences, null, 2)}`
+}
+
+export function repairDraftingAnnotationSystemPrompt() {
+  return `You are repairing one unresolved drafting highlight anchor.
+
+Choose the intended local occurrence for the quoted text.
+
+Return JSON only in this exact shape:
+{
+  "occurrence": 1
+}
+
+Rules:
+- occurrence is 1-based.
+- Choose only from the provided candidate numbers.
+- If none fit clearly, return {"occurrence":0}.
+- Output raw JSON only.`
+}
+
+export function repairDraftingAnnotationPrompt(issue: DraftingAnchorResolutionIssue) {
+  const sentenceText = issue.sentence?.text ?? ''
+  const candidates = issue.candidates.length > 0
+    ? issue.candidates.map(candidate => `${candidate.occurrence}: ${candidate.text}`).join('\n')
+    : 'No candidates found.'
+
+  return `Quoted text: ${issue.annotation.quote}
+Sentence index: ${issue.annotation.sentenceIndex}
+Sentence:
+"""
+${sentenceText}
+"""
+
+Candidate occurrences:
+${candidates}
+
+Choose which occurrence number the annotation intended.`
 }

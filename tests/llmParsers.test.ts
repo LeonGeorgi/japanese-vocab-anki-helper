@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { parseManualVocabResolution, parseWordLines, stripResponseTag, stripWrappingJapaneseQuotes, stripXmlLikeTags } from '../src/api/llmParsers'
+import { parseDraftingFeedback, parseDraftingRepairChoice, parseManualVocabResolution, parseWordLines, stripResponseTag, stripWrappingJapaneseQuotes, stripXmlLikeTags } from '../src/api/llmParsers'
 
 test('stripWrappingJapaneseQuotes removes only balanced outer Japanese quotes across split parts', () => {
   expect(
@@ -76,4 +76,118 @@ test('stripResponseTag unwraps response tags when present', () => {
 test('stripXmlLikeTags removes generic xml-like wrappers', () => {
   expect(stripXmlLikeTags('<output><word>橋</word></output>')).toBe('橋')
   expect(stripXmlLikeTags(' <thinking>\nIdea A\n</thinking> ')).toBe('Idea A')
+})
+
+test('parseDraftingFeedback parses valid drafting feedback JSON', () => {
+  expect(parseDraftingFeedback(`{
+    "summary": "Strong overall draft.",
+    "strengths": ["Clear structure"],
+    "improvements": ["Tighten the ending"],
+    "annotations": [
+      {
+        "severity": "warning",
+        "quote": "今日は",
+        "occurrence": 1,
+        "sentenceIndex": 0,
+        "reason": "Slightly awkward opening.",
+        "suggestion": "Use a more natural opener."
+      },
+      {
+        "severity": "error",
+        "quote": "で",
+        "occurrence": 1,
+        "sentenceIndex": 0,
+        "reason": "Wrong particle.",
+        "suggestion": "Replace it with に."
+      }
+    ]
+  }`)).toEqual({
+    summary: 'Strong overall draft.',
+    strengths: ['Clear structure'],
+    improvements: ['Tighten the ending'],
+    annotations: [
+      {
+        severity: 'warning',
+        quote: '今日は',
+        occurrence: 1,
+        sentenceIndex: 0,
+        reason: 'Slightly awkward opening.',
+        suggestion: 'Use a more natural opener.',
+      },
+      {
+        severity: 'error',
+        quote: 'で',
+        occurrence: 1,
+        sentenceIndex: 0,
+        reason: 'Wrong particle.',
+        suggestion: 'Replace it with に.',
+      },
+    ],
+  })
+})
+
+test('parseDraftingFeedback drops invalid and overlapping annotations but keeps top-level feedback', () => {
+  expect(parseDraftingFeedback(`{
+    "summary": "Reasonable draft.",
+    "strengths": ["Clear intent"],
+    "improvements": ["Fix the middle sentence"],
+    "annotations": [
+      {
+        "severity": "warning",
+        "quote": "変な言い方",
+        "occurrence": 1,
+        "sentenceIndex": 0,
+        "reason": "Awkward phrase.",
+        "suggestion": "Shorten it."
+      },
+      {
+        "severity": "error",
+        "quote": "",
+        "occurrence": 1,
+        "sentenceIndex": 0,
+        "reason": "Empty quote.",
+        "suggestion": "This one should be dropped."
+      },
+      {
+        "severity": "warning",
+        "quote": "句",
+        "occurrence": 0,
+        "sentenceIndex": 0,
+        "reason": "Bad occurrence.",
+        "suggestion": "Drop this too."
+      },
+      {
+        "severity": "maybe",
+        "quote": "句",
+        "occurrence": 1,
+        "sentenceIndex": 0,
+        "reason": "Unknown severity.",
+        "suggestion": "Drop this too."
+      }
+    ]
+  }`)).toEqual({
+    summary: 'Reasonable draft.',
+    strengths: ['Clear intent'],
+    improvements: ['Fix the middle sentence'],
+    annotations: [
+      {
+        severity: 'warning',
+        quote: '変な言い方',
+        occurrence: 1,
+        sentenceIndex: 0,
+        reason: 'Awkward phrase.',
+        suggestion: 'Shorten it.',
+      },
+    ],
+  })
+})
+
+test('parseDraftingFeedback returns null when the response is not usable JSON', () => {
+  expect(parseDraftingFeedback('not json at all')).toBeNull()
+})
+
+test('parseDraftingRepairChoice returns a valid repaired occurrence number', () => {
+  expect(parseDraftingRepairChoice('{"occurrence":2}')).toBe(2)
+  expect(parseDraftingRepairChoice('{"occurrence":0}')).toBeNull()
+  expect(parseDraftingRepairChoice('not json')).toBeNull()
 })

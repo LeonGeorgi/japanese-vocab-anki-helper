@@ -1,8 +1,10 @@
 import { getDefaultStore } from 'jotai'
-import type { GenerateOptions, JlptLevel, ManualVocabResolution, TrainingEvaluation, Word } from '../types'
+import type { DraftingFeedback, GenerateOptions, JlptLevel, ManualVocabResolution, TrainingEvaluation, TrainingPrompt, Word } from '../types'
 import { createLlmClient, type LlmFeature, type LlmModelInfo } from '../llm'
 import { llmProviderAtom, llmTextModelAtom, llmVisionModelAtom } from '../state/settingsAtoms'
 import {
+  repairDraftingAnnotationPrompt,
+  repairDraftingAnnotationSystemPrompt,
   ANNOTATE_SENTENCE_SYSTEM_PROMPT,
   CONVERT_WORD_TO_KANJI_SYSTEM_PROMPT,
   EXTRACT_WORDS_SYSTEM_PROMPT,
@@ -24,11 +26,14 @@ import {
   resolveManualVocabPrompt,
   reviewTrainingAnswerPrompt,
   reviewTrainingAnswerSystemPrompt,
+  reviewDraftingTextPrompt,
+  reviewDraftingTextSystemPrompt,
   splitWordPrompt,
   translateSentenceSystemPrompt,
   translateSentencePrompt,
 } from './llmPrompts'
-import { parseManualVocabResolution, parseTrainingEvaluation, parseWordLines, stripResponseTag, stripWrappingJapaneseQuotes, stripXmlLikeTags } from './llmParsers'
+import { parseDraftingFeedback, parseDraftingRepairChoice, parseManualVocabResolution, parseTrainingEvaluation, parseWordLines, stripResponseTag, stripWrappingJapaneseQuotes, stripXmlLikeTags } from './llmParsers'
+import { resolveDraftingAnnotations, sentenceTableForPrompt, type DraftingAnchorAnnotation, type DraftingAnchorResolutionIssue } from './draftingFeedback'
 import { selectExampleContext } from './exampleContext'
 
 function resolveLlmRuntime(apiKey: string) {
@@ -318,4 +323,140 @@ export async function reviewTrainingAnswer(
     },
   )
   return parseTrainingEvaluation(raw)
+}
+
+export async function reviewDraftingText(
+  apiKey: string,
+  nativeLanguage: string,
+  jlptLevel: JlptLevel,
+  purposeText: string,
+  draftText: string,
+): Promise<DraftingFeedback> {
+  const lang = nativeLanguage || 'English'
+  const sentences = sentenceTableForPrompt(draftText)
+  const raw = await requestDraftingFeedbackRaw(apiKey, lang, jlptLevel, purposeText, draftText, sentences)
+  const parsed = parseDraftingFeedback(raw)
+  if (!parsed) throw new Error('Drafting feedback could not be parsed cleanly. The AI response was likely truncated. Please try again.')
+
+  let resolution = resolveDraftingAnnotations(draftText, parsed.annotations)
+  if (resolution.unresolved.length > 0) {
+    const repaired = await Promise.all(
+      resolution.unresolved.map(issue => repairDraftingAnnotation(apiKey, issue)),
+    )
+    const repairable = repaired.filter((value): value is { original: DraftingAnchorAnnotation; repaired: DraftingAnchorAnnotation } => value !== null)
+    if (repairable.length > 0) {
+      const repairedByKey = new Map(
+        repairable.map(item => [draftingAnchorKey(item.original), item.repaired]),
+      )
+      const nextAnchors = parsed.annotations.map(annotation =>
+        repairedByKey.get(draftingAnchorKey(annotation)) ?? annotation,
+      )
+      resolution = resolveDraftingAnnotations(draftText, nextAnchors)
+    }
+  }
+
+  return {
+    summary: parsed.summary,
+    strengths: parsed.strengths,
+    improvements: parsed.improvements,
+    annotations: resolution.annotations,
+  }
+}
+
+async function requestDraftingFeedbackRaw(
+  apiKey: string,
+  nativeLanguage: string,
+  jlptLevel: JlptLevel,
+  purposeText: string,
+  draftText: string,
+  sentences: Array<{ sentenceIndex: number; text: string }>,
+) {
+  const { maxTokens, thinkingTokens } = draftingFeedbackBudget(draftText, purposeText, sentences.length)
+
+  return callTextModel(
+    apiKey,
+    'review_drafting_text',
+    reviewDraftingTextPrompt(nativeLanguage, jlptLevel, purposeText, draftText, sentences),
+    maxTokens,
+    thinkingTokens,
+    reviewDraftingTextSystemPrompt(nativeLanguage, jlptLevel),
+    {
+      draftLength: draftText.length,
+      purposeLength: purposeText.length,
+      sentenceCount: sentences.length,
+      draftingMaxTokens: maxTokens,
+      draftingThinkingTokens: thinkingTokens,
+    },
+  )
+}
+
+function draftingFeedbackBudget(
+  draftText: string,
+  purposeText: string,
+  sentenceCount: number,
+) {
+  const totalLength = draftText.length + purposeText.length
+
+  const maxTokens = Math.min(
+    7000,
+    Math.max(
+      4200,
+      3200
+        + Math.ceil(totalLength * 0.75)
+        + sentenceCount * 40,
+    ),
+  )
+
+  const thinkingTokens = Math.min(
+    1536,
+    Math.max(
+      512,
+      512 + Math.ceil(totalLength * 0.12),
+    ),
+  )
+
+  return { maxTokens, thinkingTokens }
+}
+
+async function repairDraftingAnnotation(
+  apiKey: string,
+  issue: DraftingAnchorResolutionIssue,
+) {
+  if (!issue.sentence || issue.candidates.length === 0) return null
+
+  const raw = await callTextModel(
+    apiKey,
+    'review_drafting_text',
+    repairDraftingAnnotationPrompt(issue),
+    64,
+    0,
+    repairDraftingAnnotationSystemPrompt(),
+    {
+      sentenceLength: issue.sentence.text.length,
+      candidateCount: issue.candidates.length,
+      quoteLength: issue.annotation.quote.length,
+    },
+  )
+
+  const occurrence = parseDraftingRepairChoice(raw)
+  if (!occurrence || !issue.candidates.some(candidate => candidate.occurrence === occurrence)) return null
+
+  return {
+    original: issue.annotation,
+    repaired: {
+      ...issue.annotation,
+      occurrence,
+    },
+  }
+}
+
+function draftingAnchorKey(annotation: DraftingAnchorAnnotation) {
+  return [
+    annotation.severity,
+    annotation.quote,
+    annotation.occurrence,
+    annotation.sentenceIndex,
+    annotation.reason,
+    annotation.suggestion,
+  ].join('::')
 }

@@ -20,6 +20,7 @@ export type LlmFeature =
   | 'resolve_manual_vocab'
   | 'generate_manual_example'
   | 'review_training_answer'
+  | 'review_drafting_text'
 
 export interface TextRequest {
   model: string
