@@ -4,6 +4,7 @@ import {
   IconCheck,
   IconCards,
   IconDotsVertical,
+  IconLanguage,
   IconSend,
   IconSquareRoundedPlus,
 } from '@tabler/icons-react'
@@ -130,6 +131,17 @@ export function VocabRow({ word, example, apiKey, nativeLanguage, inAnki, onGene
                 <div className={styles.exampleRow}>
                   <span className={styles.exampleSentence}>「{example.sentence}」</span>
                   <div className={styles.actionGroup}>
+                    {nativeLanguage && (
+                      <button
+                        className={styles.iconButton}
+                        title="Translate sentence"
+                        aria-label="Translate sentence"
+                        onClick={() => onTranslate(word.word)}
+                        disabled={example.translationLoading}
+                      >
+                        {example.translationLoading ? <span className={`spinner ${styles.kanjiSpinner}`} /> : <IconLanguage className={styles.buttonIcon} stroke={1.8} />}
+                      </button>
+                    )}
                     <button
                       className={`${styles.iconButton} ${styles.iconButtonPrimary}`}
                       title="Add to Anki"
@@ -159,23 +171,18 @@ export function VocabRow({ word, example, apiKey, nativeLanguage, inAnki, onGene
                     </button>
                   {sentenceMenuOpen && (
                     <div className={styles.menuDropdown}>
-                      {nativeLanguage && menuItem(
-                        example.translationLoading ? 'Translating…' : 'Translate',
-                          () => onTranslate(word.word),
-                          example.translationLoading,
-                        )}
-                        {menuItem('Simpler sentence', () => onGenerate(word.word, { previousSentence: example.sentence ?? undefined, simplify: true }))}
-                        {menuItem('Feedback…', () => setFeedbackOpen(o => !o))}
-                        {menuItem('New example', () => onGenerate(word.word))}
-                        <div className={styles.menuDivider} />
-                        {menuItem(
-                          kanjiLoading ? 'Converting…' : 'Write in kanji',
-                          convertToKanji,
-                          kanjiLoading,
-                        )}
-                        {menuItem('Split word', split, splitLoading)}
-                      </div>
-                    )}
+                      {menuItem('Simpler sentence', () => onGenerate(word.word, { previousSentence: example.sentence ?? undefined, simplify: true }))}
+                      {menuItem('Feedback…', () => setFeedbackOpen(o => !o))}
+                      {menuItem('New example', () => onGenerate(word.word))}
+                      <div className={styles.menuDivider} />
+                      {menuItem(
+                        kanjiLoading ? 'Converting…' : 'Write in kanji',
+                        convertToKanji,
+                        kanjiLoading,
+                      )}
+                      {menuItem('Split word', split, splitLoading)}
+                    </div>
+                  )}
                   </div>
                 </div>
                 {feedbackOpen && (
