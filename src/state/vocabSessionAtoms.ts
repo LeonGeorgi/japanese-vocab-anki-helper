@@ -5,102 +5,47 @@ import {
   KEY_MANUAL_SESSION_HISTORY,
   KEY_SESSION,
   KEY_TEXT_SESSION_HISTORY,
-  KEY_DRAFTING_SESSION,
-  KEY_DRAFTING_SESSION_HISTORY,
   KEY_TRAINING_SESSION,
   KEY_TRAINING_SESSION_HISTORY,
   normalizeEasyWordFilterLevel,
 } from '../constants'
-import type { DraftingFeedback, EasyWordFilterLevel, Example, TrainingAttempt, TrainingPrompt, Word } from '../types'
+import type { Example, TrainingAttempt, TrainingPrompt } from '../types'
+import type {
+  ExampleStatus,
+  StoredExample,
+  TextVocabSession,
+  TextVocabHistoryEntry,
+  ManualVocabSession,
+  ManualVocabHistoryEntry,
+  TrainingSession,
+  TrainingHistoryEntry,
+} from './session-types'
+export type {
+  ExampleStatus,
+  StoredExample,
+  TextVocabSession,
+  TextVocabHistoryEntry,
+  ManualVocabSession,
+  ManualVocabHistoryEntry,
+  TrainingSession,
+  TrainingHistoryEntry,
+  DraftingSession,
+  DraftingHistoryEntry,
+} from './session-types'
+export {
+  createEmptyDraftingSession,
+  draftingHistoryAtom,
+  draftingHistoryTitle,
+  draftingSessionAtom,
+  deleteDraftingHistoryEntryAtom,
+  isDraftingFeedbackStale,
+  isEmptyDraftingSession,
+  resetDraftingAtom,
+  restoreDraftingHistoryAtom,
+  setDraftingSessionTitleAtom,
+} from './draftingSessionStore'
 
 type StateUpdate<T> = T | ((prev: T) => T)
-
-export interface StoredExample {
-  sentence: string | null
-  translation: string | null
-}
-
-export interface ExampleStatus {
-  loading: boolean
-  error: string | null
-  translationLoading: boolean
-}
-
-export interface TextVocabSession {
-  id: string
-  createdAt: number
-  updatedAt: number
-  title: string
-  transcription: string
-  words: Word[]
-  examples: Record<string, StoredExample>
-  easyWordFilter: EasyWordFilterLevel
-}
-
-export interface TextVocabHistoryEntry {
-  id: string
-  title: string
-  createdAt: number
-  updatedAt: number
-  session: TextVocabSession
-}
-
-export interface ManualVocabSession {
-  id: string
-  createdAt: number
-  updatedAt: number
-  title: string
-  words: Word[]
-  examples: Record<string, StoredExample>
-  meanings: Record<string, string>
-  contexts: Record<string, string>
-}
-
-export interface ManualVocabHistoryEntry {
-  id: string
-  title: string
-  createdAt: number
-  updatedAt: number
-  session: ManualVocabSession
-}
-
-export interface TrainingSession {
-  id: string
-  createdAt: number
-  updatedAt: number
-  title: string
-  queue: TrainingPrompt[]
-  currentPrompt: TrainingPrompt | null
-  attempts: TrainingAttempt[]
-  promptCount: number
-}
-
-export interface TrainingHistoryEntry {
-  id: string
-  title: string
-  createdAt: number
-  updatedAt: number
-  session: TrainingSession
-}
-
-export interface DraftingSession {
-  id: string
-  createdAt: number
-  updatedAt: number
-  title: string
-  draftText: string
-  purposeText: string
-  lastFeedbackDraftText: string
-  feedback: DraftingFeedback | null
-}
-
-export interface DraftingHistoryEntry {
-  id: string
-  title: string
-  createdAt: number
-  updatedAt: number
-  session: DraftingSession
-}
 
 const storageOptions = { getOnInit: true }
 const maxHistoryEntries = 20
@@ -108,11 +53,9 @@ const maxHistoryEntries = 20
 const storedTextVocabSessionAtom = atomWithStorage<TextVocabSession>(KEY_SESSION, createEmptyTextVocabSession(), undefined, storageOptions)
 const storedManualVocabSessionAtom = atomWithStorage<ManualVocabSession>(KEY_MANUAL_SESSION, createEmptyManualVocabSession(), undefined, storageOptions)
 const storedTrainingSessionAtom = atomWithStorage<TrainingSession>(KEY_TRAINING_SESSION, createEmptyTrainingSession(), undefined, storageOptions)
-const storedDraftingSessionAtom = atomWithStorage<DraftingSession>(KEY_DRAFTING_SESSION, createEmptyDraftingSession(), undefined, storageOptions)
 export const textVocabHistoryAtom = atomWithStorage<TextVocabHistoryEntry[]>(KEY_TEXT_SESSION_HISTORY, [], undefined, storageOptions)
 export const manualVocabHistoryAtom = atomWithStorage<ManualVocabHistoryEntry[]>(KEY_MANUAL_SESSION_HISTORY, [], undefined, storageOptions)
 export const trainingHistoryAtom = atomWithStorage<TrainingHistoryEntry[]>(KEY_TRAINING_SESSION_HISTORY, [], undefined, storageOptions)
-export const draftingHistoryAtom = atomWithStorage<DraftingHistoryEntry[]>(KEY_DRAFTING_SESSION_HISTORY, [], undefined, storageOptions)
 
 export const textExampleStatusAtom = atom<Record<string, ExampleStatus>>({})
 export const manualExampleStatusAtom = atom<Record<string, ExampleStatus>>({})
@@ -238,45 +181,6 @@ export const resetTrainingAtom = atom(null, (get, set) => {
 export const setTrainingSessionTitleAtom = atom(null, (_get, set, title: string) => {
   const value = title.trimStart()
   set(trainingSessionAtom, prev => ({ ...prev, title: value }))
-})
-
-export const draftingSessionAtom = atom(
-  get => normalizeDraftingSession(get(storedDraftingSessionAtom)),
-  (get, set, update: StateUpdate<DraftingSession>) => {
-    const prev = normalizeDraftingSession(get(storedDraftingSessionAtom))
-    const nextValue = typeof update === 'function' ? update(prev) : update
-    const next = normalizeDraftingSession(nextValue, prev)
-
-    set(storedDraftingSessionAtom, next)
-    const entry = createDraftingHistoryEntry(next)
-    if (entry) set(draftingHistoryAtom, historyWithEntry(get(draftingHistoryAtom), entry))
-  },
-)
-
-export const restoreDraftingHistoryAtom = atom(null, (get, set, id: string) => {
-  const entry = get(draftingHistoryAtom).find(item => item.id === id)
-  if (!entry) return
-  set(storedDraftingSessionAtom, normalizeDraftingSession({ ...entry.session, id: entry.session.id ?? entry.id }))
-})
-
-export const deleteDraftingHistoryEntryAtom = atom(null, (get, set, id: string) => {
-  set(draftingHistoryAtom, get(draftingHistoryAtom).filter(entry => entry.id !== id))
-  if (get(draftingSessionAtom).id === id) {
-    set(storedDraftingSessionAtom, createEmptyDraftingSession())
-  }
-})
-
-export const resetDraftingAtom = atom(null, (get, set) => {
-  const entry = createDraftingHistoryEntry(get(draftingSessionAtom))
-  if (entry) set(draftingHistoryAtom, historyWithEntry(get(draftingHistoryAtom), entry))
-  const next = createEmptyDraftingSession()
-  set(storedDraftingSessionAtom, next)
-  return next.id
-})
-
-export const setDraftingSessionTitleAtom = atom(null, (_get, set, title: string) => {
-  const value = title.trimStart()
-  set(draftingSessionAtom, prev => ({ ...prev, title: value }))
 })
 
 export function createEmptyTextVocabSession(): TextVocabSession {
@@ -452,41 +356,6 @@ function normalizeTrainingAttempts(attempts: TrainingAttempt[]): TrainingAttempt
   })
 }
 
-export function createEmptyDraftingSession(): DraftingSession {
-  const now = Date.now()
-  return {
-    id: createDraftingSessionId(),
-    createdAt: now,
-    updatedAt: now,
-    title: '',
-    draftText: '',
-    purposeText: '',
-    lastFeedbackDraftText: '',
-    feedback: null,
-  }
-}
-
-function normalizeDraftingSession(
-  session: DraftingSession,
-  previous?: DraftingSession,
-): DraftingSession {
-  const now = Date.now()
-  return {
-    id: session.id ?? previous?.id ?? createDraftingSessionId(),
-    createdAt: session.createdAt ?? previous?.createdAt ?? now,
-    updatedAt: previous && session !== previous ? now : session.updatedAt ?? now,
-    title: session.title ?? previous?.title ?? '',
-    draftText: session.draftText ?? previous?.draftText ?? '',
-    purposeText: session.purposeText ?? previous?.purposeText ?? '',
-    lastFeedbackDraftText: session.lastFeedbackDraftText ?? previous?.lastFeedbackDraftText ?? '',
-    feedback: session.feedback === undefined ? previous?.feedback ?? null : session.feedback,
-  }
-}
-
-function createDraftingSessionId(): string {
-  return `drafting_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-}
-
 function createTextVocabHistoryEntry(session: TextVocabSession): TextVocabHistoryEntry | null {
   if (isEmptyTextVocabSession(session)) return null
   return {
@@ -510,10 +379,6 @@ function historyWithEntry(
   history: TrainingHistoryEntry[],
   entry: TrainingHistoryEntry,
 ): TrainingHistoryEntry[]
-function historyWithEntry(
-  history: DraftingHistoryEntry[],
-  entry: DraftingHistoryEntry,
-): DraftingHistoryEntry[]
 function historyWithEntry<T extends { id: string }>(
   history: T[],
   entry: T,
@@ -582,34 +447,6 @@ function trainingHistoryTitle(session: TrainingSession): string {
   const firstAttemptWords = session.attempts[0]?.prompt.words.filter(Boolean) ?? []
   if (firstAttemptWords.length > 0) return `Training: ${firstAttemptWords.join(' + ')}`.slice(0, 72)
   return 'Untitled training session'
-}
-
-function createDraftingHistoryEntry(session: DraftingSession): DraftingHistoryEntry | null {
-  if (isEmptyDraftingSession(session)) return null
-  return {
-    id: session.id,
-    title: draftingHistoryTitle(session),
-    createdAt: session.createdAt,
-    updatedAt: session.updatedAt,
-    session,
-  }
-}
-
-export function isEmptyDraftingSession(session: DraftingSession): boolean {
-  return !session.draftText.trim() && !session.purposeText.trim() && !session.feedback
-}
-
-export function draftingHistoryTitle(session: DraftingSession): string {
-  if (session.title.trim()) return session.title.trim().slice(0, 72)
-  const firstLine = session.draftText.trim().split(/\r?\n/).find(Boolean)
-  if (firstLine) return firstLine.slice(0, 72)
-  const purpose = session.purposeText.trim()
-  if (purpose) return `Drafting: ${purpose}`.slice(0, 72)
-  return 'Untitled drafting session'
-}
-
-export function isDraftingFeedbackStale(session: DraftingSession): boolean {
-  return !!session.feedback && session.lastFeedbackDraftText !== session.draftText
 }
 
 export function toStoredExamples(examples: Record<string, Example>): Record<string, StoredExample> {
