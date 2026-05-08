@@ -1,0 +1,21 @@
+.cursor {
+  display: inline-block;
+  width: 0.62em;
+  height: 1.1em;
+  margin-left: 0.12em;
+  vertical-align: -0.14em;
+  border-radius: 999px;
+  background: oklch(from var(--accent) l c h / 0.9);
+  box-shadow: 0 0 0 1px oklch(from var(--accent) l c h / 0.08);
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 42% {
+    opacity: 1;
+  }
+
+  55%, 100% {
+    opacity: 0.18;
+  }
+}

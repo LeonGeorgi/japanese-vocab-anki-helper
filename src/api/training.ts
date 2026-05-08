@@ -1,7 +1,8 @@
 import { findNotesByQuery, getNotesInfo, type AnkiNoteInfo } from './anki'
 import { plainAnkiText } from './ankiBackfill'
 import type { AnkiFieldNames } from './ankiCard'
-import { generateTrainingPrompt as requestTrainingPrompt, translateSentence } from './llm'
+import { generateTrainingPrompt as requestTrainingPrompt, streamGenerateTrainingPrompt as requestStreamingTrainingPrompt, streamTranslateSentence, translateSentence } from './llm'
+import type { StreamTextHandlers } from '../llm/types'
 import type { JlptLevel, TrainingPrompt } from '../types'
 
 export interface TrainingCandidate {
@@ -127,6 +128,34 @@ export async function generateTrainingPrompt(
     apiKey,
     referenceSentence,
     nativeLanguage || 'English',
+    prompt.words.join('、'),
+  )
+
+  return {
+    ...prompt,
+    promptTranslation,
+    referenceSentence,
+  }
+}
+
+export async function streamTrainingPrompt(
+  apiKey: string,
+  nativeLanguage: string,
+  jlptLevel: JlptLevel,
+  prompt: TrainingPrompt,
+  handlers: {
+    onReferenceDelta?: (delta: string) => void
+    onTranslationDelta?: (delta: string) => void
+  } = {},
+): Promise<TrainingPrompt> {
+  const referenceHandlers: StreamTextHandlers = { onDelta: handlers.onReferenceDelta }
+  const translationHandlers: StreamTextHandlers = { onDelta: handlers.onTranslationDelta }
+  const referenceSentence = await requestStreamingTrainingPrompt(apiKey, jlptLevel, prompt, referenceHandlers)
+  const promptTranslation = await streamTranslateSentence(
+    apiKey,
+    referenceSentence,
+    nativeLanguage || 'English',
+    translationHandlers,
     prompt.words.join('、'),
   )
 

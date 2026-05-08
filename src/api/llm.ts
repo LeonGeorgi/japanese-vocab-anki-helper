@@ -1,6 +1,7 @@
 import { getDefaultStore } from 'jotai'
 import type { DraftingFeedback, GenerateOptions, JlptLevel, ManualVocabResolution, TrainingEvaluation, TrainingPrompt, Word } from '../types'
 import { createLlmClient, type LlmFeature, type LlmModelInfo } from '../llm'
+import type { StreamTextHandlers } from '../llm/types'
 import { llmProviderAtom, llmTextModelAtom, llmVisionModelAtom } from '../state/settingsAtoms'
 import {
   repairDraftingAnnotationPrompt,
@@ -103,6 +104,44 @@ async function callTextModel(
   })
 }
 
+async function streamTextModel(
+  apiKey: string,
+  feature: LlmFeature,
+  prompt: string,
+  maxTokens: number,
+  handlers: StreamTextHandlers,
+  thinkingTokens: number = 0,
+  system?: string,
+  context?: Record<string, number>,
+): Promise<string> {
+  const { client, textModel } = resolveLlmRuntime(apiKey)
+  const request = {
+    model: textModel,
+    feature,
+    prompt,
+    maxTokens,
+    thinkingTokens,
+    system,
+    context,
+  }
+  let streamedAnyDelta = false
+
+  try {
+    return await client.streamText(request, {
+      onDelta(delta) {
+        if (!delta) return
+        streamedAnyDelta = true
+        handlers.onDelta?.(delta)
+      },
+    })
+  } catch (error) {
+    if (streamedAnyDelta) throw error
+    const fallback = await client.completeText(request)
+    if (fallback) handlers.onDelta?.(fallback)
+    return fallback
+  }
+}
+
 export async function transcribeImage(
   apiKey: string,
   base64: string,
@@ -202,6 +241,26 @@ export function translateSentence(
     translateSentenceSystemPrompt(targetLanguage),
     { sentenceLength: sentence.length, keywordLength: cleanedKeyword.length },
   ).then(stripXmlLikeTags))
+}
+
+export function streamTranslateSentence(
+  apiKey: string,
+  sentence: string,
+  targetLanguage: string,
+  handlers: StreamTextHandlers,
+  keyword?: string,
+): Promise<string> {
+  const cleanedKeyword = keyword?.trim() || ''
+  return streamTextModel(
+    apiKey,
+    'translate_sentence',
+    translateSentencePrompt(sentence, cleanedKeyword),
+    128,
+    handlers,
+    0,
+    translateSentenceSystemPrompt(targetLanguage),
+    { sentenceLength: sentence.length, keywordLength: cleanedKeyword.length },
+  ).then(stripXmlLikeTags)
 }
 
 export async function splitWord(apiKey: string, word: string): Promise<Word[]> {
@@ -320,6 +379,28 @@ export function generateTrainingPrompt(
   ).then(stripResponseTag)
 }
 
+export function streamGenerateTrainingPrompt(
+  apiKey: string,
+  jlptLevel: JlptLevel,
+  prompt: TrainingPrompt,
+  handlers: StreamTextHandlers,
+): Promise<string> {
+  return streamTextModel(
+    apiKey,
+    'generate_training_prompt',
+    generateTrainingPromptPrompt(prompt),
+    256,
+    handlers,
+    1024,
+    generateTrainingPromptSystemPrompt(prompt.words, jlptLevel),
+    {
+      targetCount: prompt.words.length,
+      totalWordLength: prompt.words.reduce((sum, word) => sum + word.length, 0),
+      totalMeaningLength: prompt.definitions.reduce((sum, meaning) => sum + meaning.length, 0),
+    },
+  ).then(stripResponseTag)
+}
+
 export async function reviewTrainingAnswer(
   apiKey: string,
   nativeLanguage: string,
@@ -335,6 +416,36 @@ export async function reviewTrainingAnswer(
     'review_training_answer',
     reviewTrainingAnswerPrompt(lang, promptTranslation, words, definitions, referenceSentence, learnerAnswer),
     512,
+    1024,
+    reviewTrainingAnswerSystemPrompt(lang),
+    {
+      promptLength: promptTranslation.length,
+      targetCount: words.length,
+      totalWordLength: words.reduce((sum, word) => sum + word.length, 0),
+      referenceLength: referenceSentence.length,
+      answerLength: learnerAnswer.length,
+    },
+  )
+  return parseTrainingEvaluation(raw)
+}
+
+export async function streamReviewTrainingAnswer(
+  apiKey: string,
+  nativeLanguage: string,
+  promptTranslation: string,
+  words: string[],
+  definitions: string[],
+  referenceSentence: string,
+  learnerAnswer: string,
+  handlers: StreamTextHandlers,
+): Promise<TrainingEvaluation> {
+  const lang = nativeLanguage || 'English'
+  const raw = await streamTextModel(
+    apiKey,
+    'review_training_answer',
+    reviewTrainingAnswerPrompt(lang, promptTranslation, words, definitions, referenceSentence, learnerAnswer),
+    512,
+    handlers,
     1024,
     reviewTrainingAnswerSystemPrompt(lang),
     {

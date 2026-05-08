@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 import { IconArrowRight, IconCards, IconReload } from '@tabler/icons-react'
-import { generateTrainingPrompt, loadTrainingPrompts } from '../../api/training'
-import { reviewTrainingAnswer } from '../../api/llm'
+import { loadTrainingPrompts, streamTrainingPrompt } from '../../api/training'
+import { streamReviewTrainingAnswer } from '../../api/llm'
 import type { JlptLevel } from '../../types'
 import { ankiFieldNamesFromMapping, fieldMappingForModelFields } from '../../api/ankiNoteFields'
 import {
@@ -12,9 +12,11 @@ import {
 } from '../../state/ankiAtoms'
 import { trainingSessionAtom } from '../../state/vocabSessionAtoms'
 import { useAnkiModelFields } from '../../primitives/anki/useAnkiModelFields'
+import { SmoothRevealText } from '../../primitives/streaming/SmoothRevealText'
 import styles from './TrainingPanel.module.css'
 
 type Notification = { type: 'success' | 'error'; message: string }
+type PromptStreamStage = 'reference' | 'translation'
 
 interface Props {
   apiKey: string
@@ -42,6 +44,12 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
   const [loadingPrompts, setLoadingPrompts] = useState(false)
   const [loadingNextPrompt, setLoadingNextPrompt] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [promptStreamStage, setPromptStreamStage] = useState<PromptStreamStage | null>(null)
+  const [streamingPromptWords, setStreamingPromptWords] = useState<string[]>([])
+  const [streamingPromptDefinitions, setStreamingPromptDefinitions] = useState<string[]>([])
+  const [referencePreview, setReferencePreview] = useState('')
+  const [translationPreview, setTranslationPreview] = useState('')
+  const [gradingPreview, setGradingPreview] = useState('')
   const currentPrompt = session.currentPrompt
   const lastAttempt = session.attempts[session.attempts.length - 1] ?? null
   const currentAttempt = currentPrompt
@@ -57,7 +65,21 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
       .filter(Boolean)
       .join(' · ')
     : ''
-
+  const promptStreaming = promptStreamStage !== null
+  const livePromptLabel = promptStreamStage === 'reference'
+    ? 'Generating prompt...'
+    : promptStreamStage === 'translation'
+      ? 'Translating prompt...'
+      : ''
+  const livePromptTextSource = promptStreamStage === 'reference' ? referencePreview : translationPreview
+  const livePromptWords = streamingPromptWords.join(' ・ ')
+  const livePromptDefinitions = streamingPromptWords
+    .map((word, index) => {
+      const definition = streamingPromptDefinitions[index]?.trim()
+      return definition ? `${word}: ${definition}` : ''
+    })
+    .filter(Boolean)
+    .join(' · ')
   async function handleLoadPrompts() {
     if (!apiKey.trim()) {
       onNotify({ type: 'error', message: 'Enter an API key in Settings to generate training prompts.' })
@@ -72,7 +94,20 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
         return
       }
       const [first, ...rest] = prompts
-      const initialPrompt = await generateTrainingPrompt(apiKey, nativeLanguage, jlptLevel, first)
+      setPromptStreamStage('reference')
+      setStreamingPromptWords(first.words)
+      setStreamingPromptDefinitions(first.definitions)
+      setReferencePreview('')
+      setTranslationPreview('')
+      const initialPrompt = await streamTrainingPrompt(apiKey, nativeLanguage, jlptLevel, first, {
+        onReferenceDelta(delta) {
+          setReferencePreview(prev => prev + delta)
+        },
+        onTranslationDelta(delta) {
+          setPromptStreamStage('translation')
+          setTranslationPreview(prev => prev + delta)
+        },
+      })
       setSession(prev => ({
         ...prev,
         currentPrompt: initialPrompt,
@@ -85,6 +120,11 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
     } catch (e) {
       onNotify({ type: 'error', message: e instanceof Error ? e.message : 'Failed to load training prompts' })
     } finally {
+      setPromptStreamStage(null)
+      setStreamingPromptWords([])
+      setStreamingPromptDefinitions([])
+      setReferencePreview('')
+      setTranslationPreview('')
       setLoadingPrompts(false)
     }
   }
@@ -99,7 +139,8 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
 
     try {
       setSubmitting(true)
-      const evaluation = await reviewTrainingAnswer(
+      setGradingPreview('')
+      const evaluation = await streamReviewTrainingAnswer(
         apiKey,
         nativeLanguage,
         currentPrompt.promptTranslation,
@@ -107,6 +148,11 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
         currentPrompt.definitions,
         currentPrompt.referenceSentence,
         trimmed,
+        {
+          onDelta(delta) {
+            setGradingPreview(prev => prev + delta)
+          },
+        },
       )
 
       setSession(prev => ({
@@ -125,6 +171,7 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
     } catch (e) {
       onNotify({ type: 'error', message: e instanceof Error ? e.message : 'Failed to grade answer' })
     } finally {
+      setGradingPreview('')
       setSubmitting(false)
     }
   }
@@ -148,9 +195,22 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
 
     try {
       setLoadingNextPrompt(true)
+      setPromptStreamStage('reference')
+      setStreamingPromptWords(nextPrompt.words)
+      setStreamingPromptDefinitions(nextPrompt.definitions)
+      setReferencePreview('')
+      setTranslationPreview('')
       const hydratedPrompt = nextPrompt.promptTranslation && nextPrompt.referenceSentence
         ? nextPrompt
-        : await generateTrainingPrompt(apiKey, nativeLanguage, jlptLevel, nextPrompt)
+        : await streamTrainingPrompt(apiKey, nativeLanguage, jlptLevel, nextPrompt, {
+          onReferenceDelta(delta) {
+            setReferencePreview(prev => prev + delta)
+          },
+          onTranslationDelta(delta) {
+            setPromptStreamStage('translation')
+            setTranslationPreview(prev => prev + delta)
+          },
+        })
       setSession(prev => ({
         ...prev,
         currentPrompt: hydratedPrompt,
@@ -160,6 +220,11 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
     } catch (e) {
       onNotify({ type: 'error', message: e instanceof Error ? e.message : 'Failed to generate the next prompt' })
     } finally {
+      setPromptStreamStage(null)
+      setStreamingPromptWords([])
+      setStreamingPromptDefinitions([])
+      setReferencePreview('')
+      setTranslationPreview('')
       setLoadingNextPrompt(false)
     }
   }
@@ -208,7 +273,28 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
         </div>
       </div>
 
-      {currentPrompt && (
+      {promptStreaming && (
+        <div className="step">
+          <div className={styles.promptCard}>
+            <div className={styles.promptHeader}>
+              <div>
+                <div className={styles.promptLabel}>Target vocab</div>
+                <div className={styles.promptWord}>{livePromptWords}</div>
+                {livePromptDefinitions && <div className={styles.promptDefinition}>{livePromptDefinitions}</div>}
+              </div>
+              <div className={styles.promptMeta}>{livePromptLabel}</div>
+            </div>
+            <div className={styles.promptText}>
+              <SmoothRevealText text={livePromptTextSource || '...'} active={promptStreaming} />
+            </div>
+            {promptStreamStage === 'reference' && (
+              <div className={styles.streamingHint}>Building the Japanese reference sentence before translating it into the prompt shown to you.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {currentPrompt && !promptStreaming && (
         <div className="step">
           <div className={styles.promptCard}>
             <div className={styles.promptHeader}>
@@ -233,11 +319,11 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
             </label>
 
             <div className={styles.answerActions}>
-              <button className="btn btn-primary" onClick={() => void handleSubmit()} disabled={submitting || loadingNextPrompt || !answer.trim()}>
+              <button className="btn btn-primary" onClick={() => void handleSubmit()} disabled={submitting || loadingNextPrompt || loadingPrompts || !answer.trim()}>
                 {submitting ? 'Grading...' : 'Grade answer'}
               </button>
               {currentAttempt && (
-                <button className="btn btn-ghost" onClick={() => void handleNextPrompt()} disabled={loadingNextPrompt}>
+                <button className="btn btn-ghost" onClick={() => void handleNextPrompt()} disabled={loadingNextPrompt || submitting || loadingPrompts}>
                   {loadingNextPrompt ? 'Generating...' : 'Next prompt'}
                   <IconArrowRight className={styles.inlineIcon} stroke={1.8} />
                 </button>
@@ -258,7 +344,30 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
         </div>
       )}
 
-      {currentAttempt && (
+      {submitting && gradingPreview && (
+        <div className="step">
+          <div className={styles.feedbackCard}>
+            <div className={styles.feedbackTitle}>AI feedback</div>
+            <div className={styles.streamingMeta}>Grading...</div>
+            <pre className={styles.streamingPreview}>
+              <SmoothRevealText text={gradingPreview} active={submitting} />
+            </pre>
+            <div className={styles.streamingHint}>Assembling structured feedback after the stream completes.</div>
+          </div>
+        </div>
+      )}
+
+      {submitting && !gradingPreview && (
+        <div className="step">
+          <div className={styles.feedbackCard}>
+            <div className={styles.feedbackTitle}>AI feedback</div>
+            <div className={styles.streamingMeta}>Grading...</div>
+            <div className={styles.streamingHint}>Waiting for the first streamed feedback tokens.</div>
+          </div>
+        </div>
+      )}
+
+      {currentAttempt && !submitting && !promptStreaming && (
         <div className="step">
           <div className={styles.feedbackCard}>
             <div className={styles.feedbackTitle}>AI feedback</div>

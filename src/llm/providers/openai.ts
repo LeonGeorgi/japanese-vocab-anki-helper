@@ -1,5 +1,6 @@
-import type { ImageTextRequest, LlmModelInfo, LlmProviderDefinition, TextRequest } from '../types'
+import type { ImageTextRequest, LlmModelInfo, LlmProviderDefinition, StreamTextHandlers, TextRequest } from '../types'
 import { recordLlmUsage } from '../usageTracker'
+import { parseJsonSseData, parseSseStream, type SseEvent } from './sse'
 
 const OPENAI_API = 'https://api.openai.com/v1'
 
@@ -40,6 +41,20 @@ interface ParsedChatCompletion {
   }
 }
 
+interface OpenAiStreamChunk {
+  choices?: Array<{
+    delta?: { content?: unknown }
+    finish_reason?: string | null
+  }>
+  usage?: {
+    prompt_tokens?: number
+    completion_tokens?: number
+    completion_tokens_details?: {
+      reasoning_tokens?: number
+    }
+  }
+}
+
 async function parseChatCompletion(response: Response): Promise<ParsedChatCompletion> {
   if (!response.ok) {
     throw new Error(await extractErrorMessage(response))
@@ -62,6 +77,39 @@ async function parseChatCompletion(response: Response): Promise<ParsedChatComple
       outputTokens: data.usage?.completion_tokens ?? 0,
       reasoningTokens: data.usage?.completion_tokens_details?.reasoning_tokens ?? 0,
     },
+  }
+}
+
+export function parseOpenAiStreamEvent(event: SseEvent): {
+  delta: string
+  finishReason: string | null
+  usage: ParsedChatCompletion['usage'] | null
+  done: boolean
+} | null {
+  if (event.data === '[DONE]') {
+    return {
+      delta: '',
+      finishReason: 'stop',
+      usage: null,
+      done: true,
+    }
+  }
+
+  const data = parseJsonSseData<OpenAiStreamChunk>(event)
+  if (!data) return null
+  const choice = data.choices?.[0]
+
+  return {
+    delta: parseChoiceContent(choice?.delta?.content),
+    finishReason: choice?.finish_reason ?? null,
+    usage: data.usage
+      ? {
+          inputTokens: data.usage.prompt_tokens ?? 0,
+          outputTokens: data.usage.completion_tokens ?? 0,
+          reasoningTokens: data.usage.completion_tokens_details?.reasoning_tokens ?? 0,
+        }
+      : null,
+    done: choice?.finish_reason != null,
   }
 }
 
@@ -122,6 +170,7 @@ async function chatCompletionWithTokenFallback(
     reasoning_effort?: 'minimal' | 'low' | 'medium' | 'high'
   },
   maxCompletionTokens: number,
+  stream = false,
 ): Promise<Response> {
   const request = (tokenField: 'max_completion_tokens' | 'max_tokens') =>
     fetch(`${OPENAI_API}/chat/completions`, {
@@ -129,6 +178,8 @@ async function chatCompletionWithTokenFallback(
       headers: buildHeaders(apiKey),
       body: JSON.stringify({
         ...payload,
+        stream,
+        ...(stream ? { stream_options: { include_usage: true } } : {}),
         [tokenField]: maxCompletionTokens,
       }),
     })
@@ -202,6 +253,58 @@ function createOpenAiClient(apiKey: string) {
       const retried = await parseChatCompletion(retryResponse)
       recordUsage({ model: req.model, feature: req.feature, mode: 'text', context: req.context }, retried)
       return retried.content
+    },
+
+    async streamText(req: TextRequest, handlers: StreamTextHandlers = {}) {
+      const completionBudget = req.maxTokens + Math.max(req.thinkingTokens ?? 0, 0)
+      const payload = {
+        model: req.model,
+        reasoning_effort: reasoningEffortFromThinkingTokens(req.thinkingTokens),
+        messages: [
+          ...(req.system ? [{ role: 'system', content: req.system }] : []),
+          { role: 'user', content: req.prompt },
+        ],
+      }
+
+      const response = await chatCompletionWithTokenFallback(
+        apiKey,
+        payload,
+        completionBudget,
+        true,
+      )
+      if (!response.ok) {
+        throw new Error(await extractErrorMessage(response))
+      }
+      if (!response.body) {
+        throw new Error('Streaming response body was unavailable.')
+      }
+
+      let content = ''
+      let finishReason: string | null = null
+      let usage: ParsedChatCompletion['usage'] = {
+        inputTokens: 0,
+        outputTokens: 0,
+        reasoningTokens: 0,
+      }
+
+      for await (const event of parseSseStream(response.body)) {
+        const parsed = parseOpenAiStreamEvent(event)
+        if (!parsed) continue
+        if (parsed.delta) {
+          content += parsed.delta
+          handlers.onDelta?.(parsed.delta)
+        }
+        if (parsed.usage) usage = parsed.usage
+        if (parsed.finishReason) finishReason = parsed.finishReason
+        if (parsed.done && event.data === '[DONE]') break
+      }
+
+      recordUsage({ model: req.model, feature: req.feature, mode: 'text', context: req.context }, {
+        content,
+        finishReason,
+        usage,
+      })
+      return content
     },
 
     async completeFromImage(req: ImageTextRequest) {

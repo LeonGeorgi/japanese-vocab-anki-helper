@@ -33,6 +33,10 @@ export interface TextRequest {
   context?: Record<string, number>
 }
 
+export interface StreamTextHandlers {
+  onDelta?: (delta: string) => void
+}
+
 export interface ImageTextRequest {
   model: string
   feature: LlmFeature
@@ -47,6 +51,7 @@ export interface ImageTextRequest {
 export interface LlmProviderClient {
   listModels(): Promise<LlmModelInfo[]>
   completeText(req: TextRequest): Promise<string>
+  streamText(req: TextRequest, handlers?: StreamTextHandlers): Promise<string>
   completeFromImage(req: ImageTextRequest): Promise<string>
 }
 
