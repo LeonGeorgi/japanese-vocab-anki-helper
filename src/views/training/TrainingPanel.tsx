@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useAtom, useAtomValue } from 'jotai'
 import { IconArrowRight, IconCards, IconReload } from '@tabler/icons-react'
-import { loadTrainingPrompts } from '../../api/training'
+import { generateTrainingPrompt, loadTrainingPrompts } from '../../api/training'
 import { reviewTrainingAnswer } from '../../api/llm'
 import type { JlptLevel } from '../../types'
 import { ankiFieldNamesFromMapping, fieldMappingForModelFields } from '../../api/ankiNoteFields'
@@ -40,31 +40,48 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
   const [batchSize, setBatchSize] = useState(() => Math.max(session.promptCount, 5) || 5)
   const [answer, setAnswer] = useState('')
   const [loadingPrompts, setLoadingPrompts] = useState(false)
+  const [loadingNextPrompt, setLoadingNextPrompt] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const currentPrompt = session.currentPrompt
   const lastAttempt = session.attempts[session.attempts.length - 1] ?? null
   const currentAttempt = currentPrompt
-    ? lastAttempt?.prompt.noteId === currentPrompt.noteId ? lastAttempt : null
+    ? lastAttempt?.prompt.id === currentPrompt.id ? lastAttempt : null
     : lastAttempt
+  const promptWordLabel = currentPrompt?.words.join(' ・ ') ?? ''
+  const promptDefinitionLabel = currentPrompt
+    ? currentPrompt.words
+      .map((word, index) => {
+        const definition = currentPrompt.definitions[index]?.trim()
+        return definition ? `${word}: ${definition}` : ''
+      })
+      .filter(Boolean)
+      .join(' · ')
+    : ''
 
   async function handleLoadPrompts() {
+    if (!apiKey.trim()) {
+      onNotify({ type: 'error', message: 'Enter an API key in Settings to generate training prompts.' })
+      return
+    }
+
     try {
       setLoadingPrompts(true)
-      const prompts = await loadTrainingPrompts(apiKey, nativeLanguage, jlptLevel, deck, model, fieldNames, batchSize)
+      const prompts = await loadTrainingPrompts(deck, model, fieldNames, batchSize)
       if (!prompts.length) {
         onNotify({ type: 'error', message: 'No usable training cards found in that deck and model.' })
         return
       }
       const [first, ...rest] = prompts
+      const initialPrompt = await generateTrainingPrompt(apiKey, nativeLanguage, jlptLevel, first)
       setSession(prev => ({
         ...prev,
-        currentPrompt: first,
+        currentPrompt: initialPrompt,
         queue: rest,
         attempts: [],
         promptCount: prompts.length,
       }))
       setAnswer('')
-      onNotify({ type: 'success', message: `Loaded ${prompts.length} fresh training prompts.` })
+      onNotify({ type: 'success', message: `Started ${prompts.length} training prompts. Each next prompt will be generated on demand.` })
     } catch (e) {
       onNotify({ type: 'error', message: e instanceof Error ? e.message : 'Failed to load training prompts' })
     } finally {
@@ -86,8 +103,8 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
         apiKey,
         nativeLanguage,
         currentPrompt.promptTranslation,
-        currentPrompt.word,
-        currentPrompt.definition,
+        currentPrompt.words,
+        currentPrompt.definitions,
         currentPrompt.referenceSentence,
         trimmed,
       )
@@ -112,15 +129,39 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
     }
   }
 
-  function handleNextPrompt() {
+  async function handleNextPrompt() {
     if (!currentPrompt) return
     const [nextPrompt, ...rest] = session.queue
-    setSession(prev => ({
-      ...prev,
-      currentPrompt: nextPrompt ?? null,
-      queue: rest,
-    }))
-    setAnswer('')
+    if (!nextPrompt) {
+      setSession(prev => ({
+        ...prev,
+        currentPrompt: null,
+        queue: [],
+      }))
+      setAnswer('')
+      return
+    }
+    if (!apiKey.trim()) {
+      onNotify({ type: 'error', message: 'Enter an API key in Settings to generate the next prompt.' })
+      return
+    }
+
+    try {
+      setLoadingNextPrompt(true)
+      const hydratedPrompt = nextPrompt.promptTranslation && nextPrompt.referenceSentence
+        ? nextPrompt
+        : await generateTrainingPrompt(apiKey, nativeLanguage, jlptLevel, nextPrompt)
+      setSession(prev => ({
+        ...prev,
+        currentPrompt: hydratedPrompt,
+        queue: rest,
+      }))
+      setAnswer('')
+    } catch (e) {
+      onNotify({ type: 'error', message: e instanceof Error ? e.message : 'Failed to generate the next prompt' })
+    } finally {
+      setLoadingNextPrompt(false)
+    }
   }
 
   const remainingCount = (currentPrompt ? 1 : 0) + session.queue.length
@@ -157,7 +198,7 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
           <div className={styles.actions}>
             <button className="btn btn-ghost" onClick={() => void handleLoadPrompts()} disabled={loadingPrompts}>
               <IconReload className={styles.inlineIcon} stroke={1.8} />
-              {loadingPrompts ? 'Loading...' : 'Load prompts'}
+              {loadingPrompts ? 'Starting...' : 'Start round'}
             </button>
             <div className={styles.progress}>
               <IconCards className={styles.inlineIcon} stroke={1.8} />
@@ -172,9 +213,9 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
           <div className={styles.promptCard}>
             <div className={styles.promptHeader}>
               <div>
-                <div className={styles.promptLabel}>Target word</div>
-                <div className={styles.promptWord}>{currentPrompt.word}</div>
-                {currentPrompt.definition && <div className={styles.promptDefinition}>{currentPrompt.definition}</div>}
+                <div className={styles.promptLabel}>Target vocab</div>
+                <div className={styles.promptWord}>{promptWordLabel}</div>
+                {promptDefinitionLabel && <div className={styles.promptDefinition}>{promptDefinitionLabel}</div>}
               </div>
               <div className={styles.promptMeta}>Translate into Japanese</div>
             </div>
@@ -192,12 +233,12 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
             </label>
 
             <div className={styles.answerActions}>
-              <button className="btn btn-primary" onClick={() => void handleSubmit()} disabled={submitting || !answer.trim()}>
+              <button className="btn btn-primary" onClick={() => void handleSubmit()} disabled={submitting || loadingNextPrompt || !answer.trim()}>
                 {submitting ? 'Grading...' : 'Grade answer'}
               </button>
               {currentAttempt && (
-                <button className="btn btn-ghost" onClick={handleNextPrompt}>
-                  Next prompt
+                <button className="btn btn-ghost" onClick={() => void handleNextPrompt()} disabled={loadingNextPrompt}>
+                  {loadingNextPrompt ? 'Generating...' : 'Next prompt'}
                   <IconArrowRight className={styles.inlineIcon} stroke={1.8} />
                 </button>
               )}
@@ -225,7 +266,7 @@ export function TrainingPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }: P
               <ScoreChip label="Accuracy" value={currentAttempt.evaluation.scores.accuracy} />
               <ScoreChip label="Grammar" value={currentAttempt.evaluation.scores.grammar} />
               <ScoreChip label="Naturalness" value={currentAttempt.evaluation.scores.naturalness} />
-              <ScoreChip label="Target word" value={currentAttempt.evaluation.scores.targetWordUse} />
+              <ScoreChip label="Target vocab" value={currentAttempt.evaluation.scores.targetWordUse} />
               <ScoreChip label="Overall" value={currentAttempt.evaluation.scores.overall} />
             </div>
 

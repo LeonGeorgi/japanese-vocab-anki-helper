@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { useMemo } from 'react'
 import { useAtom } from 'jotai'
-import type { Word, Example } from '../../types'
+import type { EasyWordFilterLevel, Word, Example } from '../../types'
 import {
   hydrateExamples,
   resetTextVocabAtom,
@@ -46,10 +46,10 @@ export function useTextVocabSession() {
     })
   }
 
-  const setFilterEasy: Dispatch<SetStateAction<boolean>> = value => {
+  const setEasyWordFilter: Dispatch<SetStateAction<EasyWordFilterLevel>> = value => {
     setSession(prev => ({
       ...prev,
-      filterEasy: typeof value === 'function' ? value(prev.filterEasy) : value,
+      easyWordFilter: typeof value === 'function' ? value(prev.easyWordFilter) : value,
     }))
   }
 
@@ -60,8 +60,8 @@ export function useTextVocabSession() {
     setWords,
     examples,
     setExamples,
-    filterEasy: session.filterEasy,
-    setFilterEasy,
+    easyWordFilter: session.easyWordFilter,
+    setEasyWordFilter,
     reset,
   }
 }

@@ -1,6 +1,7 @@
-import type { JlptLevel } from './types'
+import type { EasyWordFilterLevel, JlptLevel } from './types'
 
 export const JLPT_LEVELS: JlptLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1']
+export const EASY_WORD_FILTER_LEVELS: EasyWordFilterLevel[] = [0, 1, 2, 3, 4]
 
 // Storage keys
 export const KEY_API_KEY        = 'vocab_api_key'
@@ -39,11 +40,24 @@ export const VOCAB_CEILING: Record<JlptLevel, string> = {
   N1: 'only N5–N3 vocabulary',
 }
 
-// Levels considered too easy to show for each user level
-export const EASY_LEVELS: Record<JlptLevel, JlptLevel[]> = {
-  N5: [],
-  N4: ['N5'],
-  N3: ['N5', 'N4'],
-  N2: ['N5', 'N4', 'N3'],
-  N1: ['N5', 'N4', 'N3', 'N2'],
+export function hiddenJlptLevelsForFilter(level: EasyWordFilterLevel): JlptLevel[] {
+  return JLPT_LEVELS.slice(0, level)
+}
+
+export function easyWordFilterLabel(level: EasyWordFilterLevel): string {
+  if (level === 0) return 'Hide nothing'
+  const hiddenLevels = hiddenJlptLevelsForFilter(level)
+  return `Hide ${hiddenLevels.slice().reverse().join(' + ')}`
+}
+
+export function normalizeEasyWordFilterLevel(value: unknown): EasyWordFilterLevel {
+  if (typeof value === 'number' && Number.isInteger(value)) {
+    if (value <= 0) return 0
+    if (value >= 4) return 4
+    return value as EasyWordFilterLevel
+  }
+
+  // Legacy boolean migration from the old checkbox-based filter.
+  if (value === true) return 1
+  return 0
 }

@@ -9,6 +9,7 @@ import {
   KEY_DRAFTING_SESSION_HISTORY,
   KEY_TRAINING_SESSION,
   KEY_TRAINING_SESSION_HISTORY,
+  normalizeEasyWordFilterLevel,
 } from '../constants'
 import type { DraftingFeedback, EasyWordFilterLevel, Example, TrainingAttempt, TrainingPrompt, Word } from '../types'
 
@@ -33,7 +34,7 @@ export interface TextVocabSession {
   transcription: string
   words: Word[]
   examples: Record<string, StoredExample>
-  filterEasy: boolean
+  easyWordFilter: EasyWordFilterLevel
 }
 
 export interface TextVocabHistoryEntry {
@@ -288,7 +289,7 @@ export function createEmptyTextVocabSession(): TextVocabSession {
     transcription: '',
     words: [],
     examples: {},
-    filterEasy: false,
+    easyWordFilter: 0,
   }
 }
 
@@ -305,7 +306,9 @@ function normalizeTextVocabSession(
     transcription: session.transcription ?? '',
     words: session.words ?? [],
     examples: session.examples ?? {},
-    filterEasy: session.filterEasy ?? false,
+    easyWordFilter: normalizeEasyWordFilterLevel(
+      session.easyWordFilter ?? (session as TextVocabSession & { filterEasy?: boolean }).filterEasy,
+    ),
   }
 }
 
@@ -372,9 +375,11 @@ function normalizeTrainingSession(
     createdAt: session.createdAt ?? previous?.createdAt ?? now,
     updatedAt: previous && session !== previous ? now : session.updatedAt ?? now,
     title: session.title ?? previous?.title ?? '',
-    queue: session.queue ?? previous?.queue ?? [],
-    currentPrompt: session.currentPrompt === undefined ? previous?.currentPrompt ?? null : session.currentPrompt,
-    attempts: session.attempts ?? previous?.attempts ?? [],
+    queue: normalizeTrainingPromptList(session.queue ?? previous?.queue ?? []),
+    currentPrompt: session.currentPrompt === undefined
+      ? normalizeTrainingPrompt(previous?.currentPrompt ?? null)
+      : normalizeTrainingPrompt(session.currentPrompt),
+    attempts: normalizeTrainingAttempts(session.attempts ?? previous?.attempts ?? []),
     promptCount: session.promptCount ?? previous?.promptCount ?? 0,
   }
 }

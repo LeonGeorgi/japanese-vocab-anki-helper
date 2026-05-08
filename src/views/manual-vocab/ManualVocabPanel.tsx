@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAtom } from 'jotai'
-import type { JlptLevel } from '../../types'
+import type { EasyWordFilterLevel, JlptLevel } from '../../types'
 import type { Notification } from '../../hooks/useNotification'
 import { useManualVocabulary } from './useManualVocabulary'
 import { manualContextAtom, manualKeepContextAtom } from '../../state/settingsAtoms'
@@ -19,7 +19,7 @@ export function ManualVocabPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }
   const [keepContext, setKeepContext] = useAtom(manualKeepContextAtom)
   const [savedContext, setSavedContext] = useAtom(manualContextAtom)
   const [context, setContext] = useState(() => keepContext ? savedContext : '')
-  const [filterEasy, setFilterEasy] = useState(false)
+  const [easyWordFilter, setEasyWordFilter] = useState<EasyWordFilterLevel>(0)
   const manualVocabulary = useManualVocabulary(apiKey, nativeLanguage, jlptLevel)
 
   function updateContext(value: string) {
@@ -114,10 +114,9 @@ export function ManualVocabPanel({ apiKey, nativeLanguage, jlptLevel, onNotify }
           words={manualVocabulary.words}
           examples={manualVocabulary.examples}
           apiKey={apiKey}
-          jlptLevel={jlptLevel}
-          filterEasy={filterEasy}
+          easyWordFilter={easyWordFilter}
           nativeLanguage={nativeLanguage}
-          onFilterChange={setFilterEasy}
+          onFilterChange={setEasyWordFilter}
           onGenerate={manualVocabulary.generate}
           onTranslate={manualVocabulary.translate}
           onSplit={manualVocabulary.split}

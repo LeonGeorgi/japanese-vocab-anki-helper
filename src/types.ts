@@ -32,9 +32,10 @@ export type ManualVocabResolution =
   | { status: 'ambiguous'; options: ManualVocabOption[] }
 
 export interface TrainingPrompt {
-  noteId: number
-  word: string
-  definition: string
+  id: string
+  noteIds: number[]
+  words: string[]
+  definitions: string[]
   promptTranslation: string
   referenceSentence: string
 }

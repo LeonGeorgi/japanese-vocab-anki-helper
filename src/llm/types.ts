@@ -19,6 +19,7 @@ export type LlmFeature =
   | 'generate_example'
   | 'resolve_manual_vocab'
   | 'generate_manual_example'
+  | 'generate_training_prompt'
   | 'review_training_answer'
   | 'review_drafting_text'
 

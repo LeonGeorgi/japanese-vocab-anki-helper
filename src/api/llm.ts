@@ -22,6 +22,8 @@ import {
   generateExampleSystemPrompt,
   generateManualExamplePrompt,
   generateManualExampleSystemPrompt,
+  generateTrainingPromptPrompt,
+  generateTrainingPromptSystemPrompt,
   resolveManualVocabSystemPrompt,
   resolveManualVocabPrompt,
   reviewTrainingAnswerPrompt,
@@ -298,12 +300,32 @@ export function generateManualExample(
   ).then(stripResponseTag)
 }
 
+export function generateTrainingPrompt(
+  apiKey: string,
+  jlptLevel: JlptLevel,
+  prompt: TrainingPrompt,
+): Promise<string> {
+  return callTextModel(
+    apiKey,
+    'generate_training_prompt',
+    generateTrainingPromptPrompt(prompt),
+    256,
+    1024,
+    generateTrainingPromptSystemPrompt(prompt.words, jlptLevel),
+    {
+      targetCount: prompt.words.length,
+      totalWordLength: prompt.words.reduce((sum, word) => sum + word.length, 0),
+      totalMeaningLength: prompt.definitions.reduce((sum, meaning) => sum + meaning.length, 0),
+    },
+  ).then(stripResponseTag)
+}
+
 export async function reviewTrainingAnswer(
   apiKey: string,
   nativeLanguage: string,
   promptTranslation: string,
-  targetWord: string,
-  definition: string,
+  words: string[],
+  definitions: string[],
   referenceSentence: string,
   learnerAnswer: string,
 ): Promise<TrainingEvaluation> {
@@ -311,13 +333,14 @@ export async function reviewTrainingAnswer(
   const raw = await callTextModel(
     apiKey,
     'review_training_answer',
-    reviewTrainingAnswerPrompt(lang, promptTranslation, targetWord, definition, referenceSentence, learnerAnswer),
+    reviewTrainingAnswerPrompt(lang, promptTranslation, words, definitions, referenceSentence, learnerAnswer),
     512,
     1024,
     reviewTrainingAnswerSystemPrompt(lang),
     {
       promptLength: promptTranslation.length,
-      wordLength: targetWord.length,
+      targetCount: words.length,
+      totalWordLength: words.reduce((sum, word) => sum + word.length, 0),
       referenceLength: referenceSentence.length,
       answerLength: learnerAnswer.length,
     },

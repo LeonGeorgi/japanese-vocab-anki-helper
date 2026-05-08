@@ -337,6 +337,54 @@ export function generateManualExamplePrompt(
   return `${inputLines.join('\n')}\n\n${previousBlock}${revisionInstruction}${simplify ? `\nUse only N5 vocabulary (the most basic, common words possible) for every word except「${word}」itself.` : ''}`
 }
 
+export function generateTrainingPromptSystemPrompt(
+  words: string[],
+  jlptLevel: JlptLevel,
+) {
+  const vocabConstraint = `mostly use ${VOCAB_CEILING[jlptLevel]}-level everyday Japanese for the rest of the sentence`
+  const lengthGuideline = words.length > 1
+    ? 'be roughly 18-40 Japanese characters long'
+    : 'be roughly 12-28 Japanese characters long'
+
+  return `Write ONE natural Japanese sentence for production practice.
+
+The sentence must:
+- use every required target vocabulary item with its intended meaning
+- ${lengthGuideline}
+- stay as one sentence
+- feel more substantial than a minimal Anki card example
+- include a clear situation, reason, contrast, consequence, relationship, or other concrete detail when natural
+- ${vocabConstraint}
+- sound natural and everyday, not literary, quirky, or overly dramatic
+- use kanji if that is the normal way to write the target vocabulary
+
+If there are multiple target words, weave all of them into one coherent sentence rather than listing disconnected facts.
+
+Return only the final Japanese sentence, nothing else.`
+}
+
+export function generateTrainingPromptPrompt(prompt: TrainingPrompt) {
+  const targets = prompt.words.map((word, index) => {
+    const meaning = prompt.definitions[index]?.trim()
+    return [
+      '  <target>',
+      `    <word>${word}</word>`,
+      ...(meaning ? [`    <meaning>${meaning}</meaning>`] : []),
+      '  </target>',
+    ].join('\n')
+  })
+
+  return [
+    '<input>',
+    '  <targets>',
+    ...targets,
+    '  </targets>',
+    '</input>',
+    '',
+    'Generate the best training sentence.',
+  ].join('\n')
+}
+
 export function reviewTrainingAnswerSystemPrompt(targetLanguage: string) {
   return `You are evaluating a Japanese learner's attempt to translate a sentence from ${targetLanguage} into Japanese.
 
@@ -344,10 +392,11 @@ Grade the attempt on five separate scales from 1 to 5:
 - accuracy: how well the meaning matches the prompt
 - grammar: correctness of Japanese grammar and conjugation
 - naturalness: how natural the Japanese sounds for a neutral reading of the prompt
-- targetWordUse: how appropriately the required target word is used
+- targetWordUse: how appropriately the required target vocabulary is used
 - overall: the overall usefulness of the answer
 
 Be fair to reasonable variations. Do not require the learner to copy the reference sentence exactly.
+If multiple target vocabulary items are required, judge whether the learner used all of them naturally and with the intended meanings.
 If the prompt in ${targetLanguage} does not clearly imply a specific register, tone, or style, do NOT penalize differences such as plain vs. polite style, slightly different phrasing, or other neutral stylistic choices. Only reduce naturalness when the Japanese itself feels awkward, unnatural, or mismatched in a clearly meaningful way.
 
 Return JSON only in this exact shape:
@@ -362,30 +411,33 @@ Return JSON only in this exact shape:
   "summary": "one short overall judgment",
   "strengths": ["short point", "short point"],
   "improvements": ["short point", "short point"],
-  "betterAnswer": "a natural Japanese answer using the target word"
+  "betterAnswer": "a natural Japanese answer using the required target vocabulary"
 }
 
 Rules:
 - Each score must be an integer from 1 to 5.
 - Keep summary under 18 words.
 - Keep strengths and improvements concise.
-- betterAnswer must be a single natural Japanese sentence.
+- betterAnswer must be a single natural Japanese sentence that uses the required target vocabulary.
 - Output JSON only, with no markdown fences or extra commentary.`
 }
 
 export function reviewTrainingAnswerPrompt(
   targetLanguage: string,
   promptTranslation: string,
-  targetWord: string,
-  definition: string,
+  words: string[],
+  definitions: string[],
   referenceSentence: string,
   learnerAnswer: string,
 ) {
-  const definitionLine = definition.trim() ? `Target word meaning: ${definition.trim()}\n` : ''
+  const targets = words.map((word, index) => ({
+    word,
+    meaning: definitions[index]?.trim() || '',
+  }))
   return `Target language: ${targetLanguage}
+Required target vocabulary (JSON): ${JSON.stringify(targets)}
 Prompt translation: ${promptTranslation}
-Target word: ${targetWord}
-${definitionLine}Reference sentence: ${referenceSentence}
+Reference sentence: ${referenceSentence}
 Learner answer: ${learnerAnswer}`
 }
 

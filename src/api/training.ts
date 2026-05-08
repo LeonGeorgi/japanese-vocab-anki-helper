@@ -1,10 +1,10 @@
 import { findNotesByQuery, getNotesInfo, type AnkiNoteInfo } from './anki'
 import { plainAnkiText } from './ankiBackfill'
 import type { AnkiFieldNames } from './ankiCard'
-import { generateManualExample, translateSentence } from './llm'
+import { generateTrainingPrompt as requestTrainingPrompt, translateSentence } from './llm'
 import type { JlptLevel, TrainingPrompt } from '../types'
 
-interface TrainingCandidate {
+export interface TrainingCandidate {
   noteId: number
   word: string
   definition: string
@@ -37,9 +37,6 @@ function hasRequiredTrainingFields(fieldNames: AnkiFieldNames) {
 }
 
 export async function loadTrainingPrompts(
-  apiKey: string,
-  nativeLanguage: string,
-  jlptLevel: JlptLevel,
   deck: string,
   model: string,
   fieldNames: AnkiFieldNames,
@@ -53,15 +50,13 @@ export async function loadTrainingPrompts(
   const noteIds = await findNotesByQuery(query)
   if (!noteIds.length) return []
 
-  const sampledIds = shuffle(noteIds).slice(0, Math.max(count * 3, count))
+  const sampledIds = shuffle(noteIds).slice(0, Math.max(count * 8, count))
   const notes = await getNotesInfo(sampledIds)
   const candidates = shuffle(notes.map(note => toTrainingCandidate(note, fieldNames)))
     .filter((candidate): candidate is TrainingCandidate => !!candidate)
-    .slice(0, count)
+    .slice(0, Math.max(count * 3, count))
 
-  return Promise.all(
-    candidates.map(candidate => buildTrainingPrompt(apiKey, nativeLanguage, jlptLevel, candidate)),
-  )
+  return buildTrainingPromptQueue(candidates, count)
 }
 
 function toTrainingCandidate(note: AnkiNoteInfo, fieldNames: AnkiFieldNames): TrainingCandidate | null {
@@ -78,30 +73,65 @@ function toTrainingCandidate(note: AnkiNoteInfo, fieldNames: AnkiFieldNames): Tr
   }
 }
 
-async function buildTrainingPrompt(
+export function buildTrainingPromptQueue(
+  candidates: TrainingCandidate[],
+  count: number,
+): TrainingPrompt[] {
+  const prompts: TrainingPrompt[] = []
+  let offset = 0
+
+  while (prompts.length < count && offset < candidates.length) {
+    const remainingPrompts = count - prompts.length
+    const remainingCandidates = candidates.length - offset
+    const maxGroupSize = Math.min(3, remainingCandidates - Math.max(0, remainingPrompts - 1))
+    if (maxGroupSize <= 0) break
+
+    let groupSize = desiredTrainingGroupSize(prompts.length, maxGroupSize)
+    if (remainingPrompts === 1) {
+      groupSize = Math.min(3, remainingCandidates)
+    }
+
+    const group = candidates.slice(offset, offset + groupSize)
+    offset += groupSize
+
+    prompts.push({
+      id: createTrainingPromptId(),
+      noteIds: group.map(candidate => candidate.noteId),
+      words: group.map(candidate => candidate.word),
+      definitions: group.map(candidate => candidate.definition),
+      promptTranslation: '',
+      referenceSentence: '',
+    })
+  }
+
+  return prompts
+}
+
+function desiredTrainingGroupSize(index: number, maxGroupSize: number) {
+  const pattern = [1, 2, 1, 3]
+  return Math.max(1, Math.min(pattern[index % pattern.length], maxGroupSize))
+}
+
+function createTrainingPromptId() {
+  return `training_prompt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+export async function generateTrainingPrompt(
   apiKey: string,
   nativeLanguage: string,
   jlptLevel: JlptLevel,
-  candidate: TrainingCandidate,
+  prompt: TrainingPrompt,
 ): Promise<TrainingPrompt> {
-  const referenceSentence = await generateManualExample(
-    apiKey,
-    candidate.word,
-    jlptLevel,
-    {},
-    candidate.definition,
-  )
+  const referenceSentence = await requestTrainingPrompt(apiKey, jlptLevel, prompt)
   const promptTranslation = await translateSentence(
     apiKey,
     referenceSentence,
     nativeLanguage || 'English',
-    candidate.word,
+    prompt.words.join('、'),
   )
 
   return {
-    noteId: candidate.noteId,
-    word: candidate.word,
-    definition: candidate.definition,
+    ...prompt,
     promptTranslation,
     referenceSentence,
   }

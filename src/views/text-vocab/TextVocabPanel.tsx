@@ -39,10 +39,9 @@ export function TextVocabPanel({
           examples={textVocabulary.examples}
           loading={textVocabulary.wordsLoading}
           apiKey={apiKey}
-          jlptLevel={jlptLevel}
-          filterEasy={textVocabulary.filterEasy}
+          easyWordFilter={textVocabulary.easyWordFilter}
           nativeLanguage={nativeLanguage}
-          onFilterChange={textVocabulary.setFilterEasy}
+          onFilterChange={textVocabulary.setEasyWordFilter}
           onGenerate={textVocabulary.generate}
           onTranslate={textVocabulary.translate}
           onSplit={textVocabulary.split}

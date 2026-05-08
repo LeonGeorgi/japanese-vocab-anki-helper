@@ -16,7 +16,9 @@ const featureLabels: Record<LlmUsageEntry['feature'], string> = {
   generate_example: 'Generate example',
   resolve_manual_vocab: 'Resolve manual vocab',
   generate_manual_example: 'Generate manual example',
+  generate_training_prompt: 'Generate training prompt',
   review_training_answer: 'Review training answer',
+  review_drafting_text: 'Review drafting text',
 }
 
 const integerFormatter = new Intl.NumberFormat()
