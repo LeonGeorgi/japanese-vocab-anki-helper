@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { useNotification } from './hooks/useNotification'
@@ -47,6 +47,7 @@ const AnkiBackfillPanel = isAnkiBackfillEnabled
   : null
 
 type VocabSessionKind = 'text' | 'manual' | 'drafting' | 'training'
+const sessionKinds: VocabSessionKind[] = ['text', 'manual', 'drafting', 'training']
 
 function sessionKindFromId(id: string | null): VocabSessionKind | null {
   if (!id) return null
@@ -93,29 +94,89 @@ export default function App() {
   const setManualSessionTitle = useSetAtom(setManualVocabSessionTitleAtom)
   const setDraftingSessionTitle = useSetAtom(setDraftingSessionTitleAtom)
   const setTrainingSessionTitle = useSetAtom(setTrainingSessionTitleAtom)
+  const currentSessions = {
+    text: textVocabSession,
+    manual: manualVocabSession,
+    drafting: draftingSession,
+    training: trainingSession,
+  }
+  const sessionHistories = {
+    text: textVocabHistory,
+    manual: manualVocabHistory,
+    drafting: draftingHistory,
+    training: trainingHistory,
+  }
+  const deleteSessionByKind = {
+    text: deleteTextVocabHistoryEntry,
+    manual: deleteManualVocabHistoryEntry,
+    drafting: deleteDraftingHistoryEntry,
+    training: deleteTrainingHistoryEntry,
+  }
+  const resetSessionByKind = {
+    text: resetTextVocab,
+    manual: resetManualVocab,
+    drafting: resetDrafting,
+    training: resetTraining,
+  }
+  const setSessionTitleByKind = {
+    text: setTextSessionTitle,
+    manual: setManualSessionTitle,
+    drafting: setDraftingSessionTitle,
+    training: setTrainingSessionTitle,
+  }
 
   const routeSessionId = location.pathname.match(/^\/session\/([^/]+)$/)?.[1] ?? null
-  const textHistoryEntry = routeSessionId ? textVocabHistory.find(entry => entry.id === routeSessionId) : undefined
-  const manualHistoryEntry = routeSessionId ? manualVocabHistory.find(entry => entry.id === routeSessionId) : undefined
-  const draftingHistoryEntry = routeSessionId ? draftingHistory.find(entry => entry.id === routeSessionId) : undefined
-  const trainingHistoryEntry = routeSessionId ? trainingHistory.find(entry => entry.id === routeSessionId) : undefined
-  const routeSessionKind: VocabSessionKind | null = routeSessionId === textVocabSession.id || textHistoryEntry
-    ? 'text'
-    : routeSessionId === manualVocabSession.id || manualHistoryEntry
-      ? 'manual'
-      : routeSessionId === draftingSession.id || draftingHistoryEntry
-        ? 'drafting'
-      : routeSessionId === trainingSession.id || trainingHistoryEntry
-        ? 'training'
-      : sessionKindFromId(routeSessionId)
-  const activeSessionId = routeSessionKind ? routeSessionId ?? '' : ''
-
+  const routeSessionKind = routeSessionId
+    ? sessionKinds.find(kind =>
+      currentSessions[kind].id === routeSessionId
+      || sessionHistories[kind].some(entry => entry.id === routeSessionId),
+    ) ?? sessionKindFromId(routeSessionId)
+    : null
+  const restorableSessionKind = routeSessionId
+    ? sessionKinds.find(kind => sessionHistories[kind].some(entry => entry.id === routeSessionId)) ?? null
+    : null
+  const activeSession = routeSessionKind ? currentSessions[routeSessionKind] : null
+  const activeSessionId = routeSessionKind && routeSessionId ? routeSessionId : ''
   const sessionHistory = [
     ...textVocabHistory.map(entry => ({ ...entry, kind: 'text' as const })),
     ...manualVocabHistory.map(entry => ({ ...entry, kind: 'manual' as const })),
     ...draftingHistory.map(entry => ({ ...entry, kind: 'drafting' as const })),
     ...trainingHistory.map(entry => ({ ...entry, kind: 'training' as const })),
   ].sort((a, b) => b.updatedAt - a.updatedAt)
+  const sessionPanels: Record<VocabSessionKind, ReactNode> = {
+    text: (
+      <TextVocabPanel
+        apiKey={apiKey}
+        nativeLanguage={nativeLanguage}
+        jlptLevel={jlptLevel}
+        onNotify={notify}
+      />
+    ),
+    manual: (
+      <ManualVocabPanel
+        apiKey={apiKey}
+        nativeLanguage={nativeLanguage}
+        jlptLevel={jlptLevel}
+        onNotify={notify}
+      />
+    ),
+    drafting: (
+      <DraftingPanel
+        apiKey={apiKey}
+        nativeLanguage={nativeLanguage}
+        jlptLevel={jlptLevel}
+        onNotify={notify}
+      />
+    ),
+    training: (
+      <TrainingPanel
+        apiKey={apiKey}
+        nativeLanguage={nativeLanguage}
+        jlptLevel={jlptLevel}
+        onNotify={notify}
+      />
+    ),
+  }
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -144,66 +205,38 @@ export default function App() {
       || routeSessionId === draftingSession.id
       || routeSessionId === trainingSession.id
     ) return
-
-    if (textHistoryEntry) restoreTextVocabHistory(routeSessionId)
-    else if (manualHistoryEntry) restoreManualVocabHistory(routeSessionId)
-    else if (draftingHistoryEntry) restoreDraftingHistory(routeSessionId)
-    else if (trainingHistoryEntry) restoreTrainingHistory(routeSessionId)
+    if (restorableSessionKind === 'text') restoreTextVocabHistory(routeSessionId)
+    else if (restorableSessionKind === 'manual') restoreManualVocabHistory(routeSessionId)
+    else if (restorableSessionKind === 'drafting') restoreDraftingHistory(routeSessionId)
+    else if (restorableSessionKind === 'training') restoreTrainingHistory(routeSessionId)
   }, [
-    draftingHistoryEntry,
     draftingSession.id,
-    manualHistoryEntry,
     manualVocabSession.id,
+    restorableSessionKind,
     restoreDraftingHistory,
     restoreManualVocabHistory,
-    restoreTrainingHistory,
     restoreTextVocabHistory,
+    restoreTrainingHistory,
     routeSessionId,
-    trainingHistoryEntry,
-    trainingSession.id,
-    textHistoryEntry,
     textVocabSession.id,
+    trainingSession.id,
   ])
-  
-  function handleRestoreTextSession(id: string) {
-    navigate(`/session/${id}`)
-  }
 
-  function handleRestoreManualSession(id: string) {
-    navigate(`/session/${id}`)
-  }
-
-  function handleRestoreDraftingSession(id: string) {
-    navigate(`/session/${id}`)
-  }
-
-  function handleRestoreTrainingSession(id: string) {
+  function handleRestoreSession(id: string) {
     navigate(`/session/${id}`)
   }
 
   function handleDeleteSession(kind: VocabSessionKind, id: string) {
-    if (kind === 'text') deleteTextVocabHistoryEntry(id)
-    else if (kind === 'manual') deleteManualVocabHistoryEntry(id)
-    else if (kind === 'drafting') deleteDraftingHistoryEntry(id)
-    else deleteTrainingHistoryEntry(id)
+    deleteSessionByKind[kind](id)
   }
 
   function handleNewSession(kind: VocabSessionKind) {
-    const id = kind === 'text'
-      ? resetTextVocab()
-      : kind === 'manual'
-        ? resetManualVocab()
-        : kind === 'drafting'
-          ? resetDrafting()
-          : resetTraining()
-    navigate(`/session/${id}`)
+    navigate(`/session/${resetSessionByKind[kind]()}`)
   }
 
   function handleCurrentSessionTitleChange(title: string) {
-    if (routeSessionKind === 'manual') setManualSessionTitle(title)
-    else if (routeSessionKind === 'drafting') setDraftingSessionTitle(title)
-    else if (routeSessionKind === 'training') setTrainingSessionTitle(title)
-    else if (routeSessionKind === 'text') setTextSessionTitle(title)
+    if (!routeSessionKind) return
+    setSessionTitleByKind[routeSessionKind](title)
   }
 
   return (
@@ -219,10 +252,7 @@ export default function App() {
         collapsed={sidebarCollapsed}
         onCollapsedChange={setSidebarCollapsed}
         onOpenSettings={() => setSettingsOpen(true)}
-        onRestoreTextSession={handleRestoreTextSession}
-        onRestoreManualSession={handleRestoreManualSession}
-        onRestoreDraftingSession={handleRestoreDraftingSession}
-        onRestoreTrainingSession={handleRestoreTrainingSession}
+        onRestoreSession={handleRestoreSession}
         onDeleteSession={handleDeleteSession}
         showAnkiBackfill={isAnkiBackfillEnabled}
         jlptLevel={jlptLevel}
@@ -234,62 +264,14 @@ export default function App() {
         <Header
           ankiConnection={ankiConnection}
           onNewSession={handleNewSession}
-          currentSessionTitle={
-            routeSessionKind === 'manual'
-              ? manualVocabSession.title
-              : routeSessionKind === 'drafting'
-                ? draftingSession.title
-              : routeSessionKind === 'training'
-                ? trainingSession.title
-                : routeSessionKind === 'text'
-                  ? textVocabSession.title
-                : null
-          }
+          currentSessionTitle={activeSession?.title ?? null}
           onCurrentSessionTitleChange={handleCurrentSessionTitleChange}
         />
         <Routes>
           <Route path="/" element={<Navigate to={`/session/${textVocabSession.id}`} replace />} />
           <Route
             path="/session/:sessionId"
-            element={
-              routeSessionKind === 'manual'
-                ? (
-                    <ManualVocabPanel
-                      apiKey={apiKey}
-                      nativeLanguage={nativeLanguage}
-                      jlptLevel={jlptLevel}
-                      onNotify={notify}
-                    />
-                  )
-                : routeSessionKind === 'training'
-                  ? (
-                      <TrainingPanel
-                        apiKey={apiKey}
-                        nativeLanguage={nativeLanguage}
-                        jlptLevel={jlptLevel}
-                        onNotify={notify}
-                      />
-                    )
-                : routeSessionKind === 'drafting'
-                  ? (
-                      <DraftingPanel
-                        apiKey={apiKey}
-                        nativeLanguage={nativeLanguage}
-                        jlptLevel={jlptLevel}
-                        onNotify={notify}
-                      />
-                    )
-                : routeSessionKind === 'text'
-                  ? (
-                      <TextVocabPanel
-                        apiKey={apiKey}
-                        nativeLanguage={nativeLanguage}
-                        jlptLevel={jlptLevel}
-                        onNotify={notify}
-                      />
-                    )
-                  : <Navigate to={`/session/${textVocabSession.id}`} replace />
-            }
+            element={routeSessionKind ? sessionPanels[routeSessionKind] : <Navigate to={`/session/${textVocabSession.id}`} replace />}
           />
           {AnkiBackfillPanel && (
             <Route

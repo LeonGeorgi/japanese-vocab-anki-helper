@@ -25,10 +25,7 @@ interface Props {
   collapsed: boolean
   onCollapsedChange: (collapsed: boolean) => void
   onOpenSettings: () => void
-  onRestoreTextSession: (id: string) => void
-  onRestoreManualSession: (id: string) => void
-  onRestoreDraftingSession: (id: string) => void
-  onRestoreTrainingSession: (id: string) => void
+  onRestoreSession: (id: string) => void
   onDeleteSession: (kind: 'text' | 'manual' | 'drafting' | 'training', id: string) => void
   showAnkiBackfill: boolean
   jlptLevel: JlptLevel
@@ -112,10 +109,7 @@ export function AppSidebar({
   collapsed,
   onCollapsedChange,
   onOpenSettings,
-  onRestoreTextSession,
-  onRestoreManualSession,
-  onRestoreDraftingSession,
-  onRestoreTrainingSession,
+  onRestoreSession,
   onDeleteSession,
   showAnkiBackfill,
   jlptLevel,
@@ -260,12 +254,7 @@ export function AppSidebar({
                   <button
                     type="button"
                     className={styles.entryMain}
-                    onClick={() => {
-                      if (entry.kind === 'text') onRestoreTextSession(entry.id)
-                      else if (entry.kind === 'manual') onRestoreManualSession(entry.id)
-                      else if (entry.kind === 'drafting') onRestoreDraftingSession(entry.id)
-                      else onRestoreTrainingSession(entry.id)
-                    }}
+                    onClick={() => onRestoreSession(entry.id)}
                   >
                     <div className={styles.entryTitle}>{entry.title}</div>
                     <div className={styles.entryMeta}>
